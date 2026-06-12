@@ -151,6 +151,7 @@ layout {
         color "#0007"
     }
     struts {
+      top 38
     }
 }
 layer-rule {
@@ -289,8 +290,7 @@ binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 
     // ── Apps ──────────────────────────────────────────
-    Mod+Return { spawn "ghostty"; }
-    Mod+T      { spawn "ghostty"; }
+    Mod+Return { spawn "alacritty"; }
     Mod+Space  { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
 
     // ── Window / session ──────────────────────────────

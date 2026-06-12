@@ -3,6 +3,11 @@
 [shell]
 offline_mode = true                # block outgoing HTTP (no community palette, no telemetry, no IP geolocation)
 
+[bar.default]
+margin_edge = 0
+thickness = 38
+reserve_space = true
+
 [wallpaper]
 directory = "~/Pictures/Wallpaper"
 
