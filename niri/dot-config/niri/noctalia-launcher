@@ -1,0 +1,20 @@
+#!/bin/sh
+# Wait for PipeWire + WirePlumber to be fully ready before launching noctalia.
+# Noctalia disables audio permanently if it can't reach a populated
+# pipewire/wireplumber stack at startup. Socket existence isn't enough —
+# WirePlumber must have registered at least one audio sink/source.
+: "${XDG_RUNTIME_DIR:=/run/user/$(id -u)}"
+
+# Wait for pipewire socket (up to ~10s)
+for _ in $(seq 1 100); do
+    [ -S "$XDG_RUNTIME_DIR/pipewire-0" ] && break
+    sleep 0.1
+done
+
+# Wait for wireplumber to register at least one audio device (up to ~10s)
+for _ in $(seq 1 100); do
+    wpctl status 2>/dev/null | grep -q '\[vol:' && break
+    sleep 0.1
+done
+
+exec noctalia

@@ -1,0 +1,19 @@
+theme = "freedesktop"
+enabled = true
+battery_low_percent = 15
+battery_critical_percent = 5
+startup_sound = "none"
+shutdown_sound = "none"
+
+[events]
+power-plug = "none"
+power-unplug = "none"
+
+[sources]
+udev = true
+battery = true
+network = true
+session = true
+volume = false
+notifications = true
+dbus_service = true

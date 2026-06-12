@@ -1,0 +1,23 @@
+# Noctalia v5 — zentoo evaluation config.
+
+[shell]
+offline_mode = true                # block outgoing HTTP (no community palette, no telemetry, no IP geolocation)
+
+[wallpaper]
+directory = "~/Pictures/Wallpaper"
+
+[theme]
+mode = "dark"
+source = "wallpaper"
+wallpaper_scheme = "m3-tonal-spot"
+
+[theme.templates]
+enable_builtin_templates = true
+enable_community_templates = false
+builtin_ids = ["ghostty", "gtk3", "gtk4", "niri"]
+
+[idle.behavior.screen-off]
+timeout = 300
+command = "noctalia:dpms-off"
+resume_command = "noctalia:dpms-on"
+enabled = true
