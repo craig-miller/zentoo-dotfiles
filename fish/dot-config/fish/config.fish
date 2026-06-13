@@ -47,4 +47,19 @@ if status is-interactive
         end
         rm -f -- "$tmp"
     end
+
+    # zoxide — smart cd. `z <pat>` jumps to highest-scored match; `zi` opens
+    # an interactive fzf picker. Ctrl+S bound to the picker (Mac parity).
+    # Disable XOFF flow control so the terminal driver doesn't swallow Ctrl+S.
+    stty -ixon 2>/dev/null
+    zoxide init fish | source
+    function __zoxide_picker
+        set -l dir (zoxide query -i 2>/dev/null)
+        if test -n "$dir"
+            builtin cd -- "$dir"
+            commandline -f repaint
+        end
+    end
+    bind \cs __zoxide_picker
+    bind -M insert \cs __zoxide_picker
 end
