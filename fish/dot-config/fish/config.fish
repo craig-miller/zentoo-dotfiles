@@ -5,6 +5,12 @@ if status is-interactive
     # Vi keybindings
     fish_vi_key_bindings
 
-    # Starship prompt (uncomment after emerging app-shells/starship)
+    # Starship prompt
     starship init fish | source
+
+    # eza — modern ls replacement (no --icons; no Nerd Font installed)
+    abbr -a ls 'eza'
+    abbr -a ll 'eza -l --git'
+    abbr -a la 'eza -la --git'
+    abbr -a lt 'eza --tree --git-ignore'
 end
