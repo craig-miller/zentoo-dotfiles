@@ -117,7 +117,7 @@ layout {
     // You can also customize the heights that "switch-preset-window-height" (Mod+Shift+R) toggles between.
     // preset-window-heights { }
     // You can change the default width of the new windows.
-    default-column-width { proportion 0.95; }
+    default-column-width { proportion 1.0; }
     // default-column-width {fixed 3840}
     // If you leave the brackets empty, the windows themselves will decide their initial width.
     // default-column-width {}
@@ -230,7 +230,7 @@ window-rule {
     match app-id=r#"^gnome-control-center$"#
     match app-id=r#"^pavucontrol$"#
     match app-id=r#"^nm-connection-editor$"#
-    default-column-width { proportion 1.0; }
+    default-column-width { proportion 0.5; }
     open-floating false
 }
 window-rule {
