@@ -1,7 +1,7 @@
 # Noctalia v5 — zentoo evaluation config.
 
 [shell]
-offline_mode = true                # block outgoing HTTP (no community palette, no telemetry, no IP geolocation)
+offline_mode = false                # community palette + community templates fetch enabled
 
 [bar.default]
 margin_edge = 0
@@ -18,8 +18,9 @@ wallpaper_scheme = "m3-tonal-spot"
 
 [theme.templates]
 enable_builtin_templates = true
-enable_community_templates = false
+enable_community_templates = true
 builtin_ids = ["alacritty", "gtk3", "gtk4", "niri", "starship"]
+community_ids = ["yazi"]
 
 [idle.behavior.screen-off]
 timeout = 300

@@ -27,4 +27,15 @@ if status is-interactive
     # (alacritty pulls noctalia's M3 colors), so bat retints with the wallpaper.
     set -gx BAT_THEME ansi
     set -gx MANPAGER "sh -c 'col -bx | bat -l man -p'"
+
+    # yazi — TUI file manager. `yy` runs yazi and cd's into the last visited
+    # directory on exit (upstream's official cwd-on-exit pattern).
+    function yy
+        set -l tmp (mktemp -t "yazi-cwd.XXXXXX")
+        yazi $argv --cwd-file="$tmp"
+        if read -z cwd <"$tmp"; and [ -n "$cwd" ]; and [ "$cwd" != "$PWD" ]
+            builtin cd -- "$cwd"
+        end
+        rm -f -- "$tmp"
+    end
 end
