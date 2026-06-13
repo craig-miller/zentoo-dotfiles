@@ -9,7 +9,7 @@ thickness = 38
 reserve_space = true
 
 [wallpaper]
-directory = "~/Pictures/Wallpaper"
+directory = "~/img/wallpaper"
 
 [theme]
 mode = "dark"
