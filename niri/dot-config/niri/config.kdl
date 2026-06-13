@@ -151,7 +151,6 @@ layout {
         color "#0007"
     }
     struts {
-      top 38
     }
 }
 layer-rule {
