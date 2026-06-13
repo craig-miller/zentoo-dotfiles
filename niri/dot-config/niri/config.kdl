@@ -249,7 +249,7 @@ window-rule {
 }
 window-rule {
     match app-id=r#"^org\.wezfurlong\.wezterm$"#
-    match app-id="Alacritty"
+    match app-id="foot"
     match app-id="zen"
     match app-id="com.mitchellh.ghostty"
     match app-id="kitty"
@@ -289,7 +289,7 @@ binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 
     // ── Apps ──────────────────────────────────────────
-    Mod+Return { spawn "alacritty"; }
+    Mod+Return { spawn "foot"; }
     Mod+Space  { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
 
     // ── Window / session ──────────────────────────────

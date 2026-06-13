@@ -33,7 +33,7 @@ if status is-interactive
     bind -M insert \cf fzf-file-widget
 
     # bat — syntax-highlighted cat. ANSI theme follows the terminal palette
-    # (alacritty pulls noctalia's M3 colors), so bat retints with the wallpaper.
+    # (foot pulls noctalia's M3 colors via include), so bat retints with the wallpaper.
     set -gx BAT_THEME ansi
     set -gx MANPAGER "sh -c 'col -bx | bat -l man -p'"
 

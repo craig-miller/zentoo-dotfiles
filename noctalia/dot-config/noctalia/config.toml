@@ -19,7 +19,7 @@ wallpaper_scheme = "m3-tonal-spot"
 [theme.templates]
 enable_builtin_templates = true
 enable_community_templates = true
-builtin_ids = ["alacritty", "foot", "gtk3", "gtk4", "niri", "starship"]
+builtin_ids = ["foot", "gtk3", "gtk4", "niri", "starship"]
 community_ids = ["yazi"]
 
 [idle.behavior.screen-off]
