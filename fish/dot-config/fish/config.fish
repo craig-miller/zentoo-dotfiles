@@ -5,6 +5,10 @@ if status is-interactive
     # Vi keybindings
     fish_vi_key_bindings
 
+    # Default editor — nvim everywhere (installed in Chapter 12 Step 0b)
+    set -gx EDITOR nvim
+    set -gx VISUAL nvim
+
     # Starship prompt
     starship init fish | source
 
