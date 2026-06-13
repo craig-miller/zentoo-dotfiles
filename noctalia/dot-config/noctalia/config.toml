@@ -19,7 +19,7 @@ wallpaper_scheme = "m3-tonal-spot"
 [theme.templates]
 enable_builtin_templates = true
 enable_community_templates = false
-builtin_ids = ["ghostty", "gtk3", "gtk4", "niri"]
+builtin_ids = ["alacritty", "gtk3", "gtk4", "niri", "starship"]
 
 [idle.behavior.screen-off]
 timeout = 300
