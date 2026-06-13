@@ -18,6 +18,11 @@ if status is-interactive
     abbr -a la 'eza -la --git'
     abbr -a lt 'eza --tree --git-ignore'
 
+    # ripgrep — fast grep replacement. Also feeds fzf as a file source
+    # (respects .gitignore, hidden files explicit, .git itself excluded).
+    set -gx FZF_DEFAULT_COMMAND "rg --files --hidden --strip-cwd-prefix --glob '!.git'"
+    set -gx FZF_CTRL_T_COMMAND "$FZF_DEFAULT_COMMAND"
+
     # fzf — fuzzy finder. Native Ctrl+R history widget.
     # Free Ctrl+T (reserved); rebind file widget to Ctrl+F.
     # fzf binds in both default and insert mode, so we mirror in both.
