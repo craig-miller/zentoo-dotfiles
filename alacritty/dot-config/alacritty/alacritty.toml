@@ -17,3 +17,9 @@ family = "JetBrains Mono"
 [window.padding]
 x = 10
 y = 10
+
+[window]
+opacity = 0.8
+
+[font]
+size = 13
