@@ -1,0 +1,10 @@
+{
+	"contributes": {
+		"snippets": [
+			{ "language": "swift", "path": "./swift.json" },
+			{ "language": "markdown", "path": "./markdown.json" },
+			{ "language": "all", "path": "./all.json" }
+		]
+	},
+	"name": "snippets"
+}

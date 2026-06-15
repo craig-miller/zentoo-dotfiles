@@ -1,25 +1,12 @@
--- Minimal neovim config. Uses the terminal's 16-color ANSI palette so
--- colors track ghostty's theme — which Noctalia paints from the active
--- wallpaper's M3 palette. No GUI true colors, no separate colorscheme —
--- neovim's default highlighting maps to cterm slots, and the terminal
--- renders them in its current theme.
+-- Listen on a per-PID socket so the colorscheme switcher
+-- (~/.config/tinted-theming/extras/nvim-rpc.sh) can flip themes in live
+-- instances without a restart.
+pcall(vim.fn.serverstart, "/tmp/nvim-" .. vim.fn.getpid() .. ".sock")
 
-vim.opt.termguicolors = false
-vim.opt.background = "dark"
-
-vim.opt.number = true
-vim.opt.relativenumber = true
-vim.opt.cursorline = true
-vim.opt.expandtab = true
-vim.opt.tabstop = 4
-vim.opt.shiftwidth = 4
-vim.opt.smartindent = true
-vim.opt.ignorecase = true
-vim.opt.smartcase = true
-vim.opt.mouse = "a"
-vim.opt.scrolloff = 4
-vim.opt.signcolumn = "yes"
-vim.opt.undofile = true
-vim.opt.clipboard = "unnamedplus"
-
-vim.g.mapleader = " "
+-- Make sure to set `mapleader` and `maplocalleader` option before loading Lazy
+-- So, load config.options before Lazy.
+require("config.options")
+require("core.lazy")
+require("core.lsp")
+require("config.autocmds")
+require("config.usercmds")

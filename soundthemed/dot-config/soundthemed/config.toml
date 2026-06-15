@@ -6,14 +6,14 @@ startup_sound = "none"
 shutdown_sound = "none"
 
 [events]
-power-plug = "none"
 power-unplug = "none"
+power-plug = "none"
 
 [sources]
-udev = true
+udev = false
 battery = true
-network = true
-session = true
+network = false
+session = false
 volume = false
 notifications = true
 dbus_service = true

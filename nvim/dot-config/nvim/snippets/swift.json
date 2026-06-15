@@ -1,0 +1,148 @@
+{
+    "if": {
+        "prefix": "if",
+        "body": [
+            "if ${1:condition} {",
+            "    ${2}",
+            "}${0}"
+        ],
+        "description": "if statement"
+    },
+    "ifl": {
+        "prefix": "ifl",
+        "body": [
+            "if let ${1:variable} = ${2:optional} {",
+            "    ${3}",
+            "}${0}"
+        ],
+        "description": "if let"
+    },
+    "ifcl": {
+        "prefix": "ifcl",
+        "body": [
+            "if case let ${1:pattern} = ${2:expression} {",
+            "    ${3}",
+            "}${0}"
+        ],
+        "description": "if case let"
+    },
+    "func": {
+        "prefix": "func",
+        "body": [
+            "func ${1:name}(${2:parameters}) ${3:throws} {",
+            "    ${0}",
+            "}"
+        ],
+        "description": "function declaration"
+    },
+    "funca": {
+        "prefix": "funca",
+        "body": [
+            "func ${1:name}(${2:parameters}) async ${3:throws} {",
+            "    ${0}",
+            "}"
+        ],
+        "description": "async function declaration"
+    },
+    "guard": {
+        "prefix": "guard",
+        "body": [
+            "guard ${1:condition} else {",
+            "    ${2:// handle failure}",
+            "}${0}"
+        ],
+        "description": "guard statement"
+    },
+    "guardl": {
+        "prefix": "guardl",
+        "body": [
+            "guard let ${1:variable} else {",
+            "    ${2:// handle failure}",
+            "}${0}"
+        ],
+        "description": "guard let statement"
+    },
+    "main": {
+        "prefix": "main",
+        "body": [
+            "@main public struct ${1:App} {",
+            "   public static func main() {",
+            "       ${0}",
+            "   }",
+            "}"
+        ],
+        "description": "main entry point struct"
+    },
+    "view-preview": {
+        "prefix": "view-preview",
+        "body": [
+            "import SwiftUI",
+            "",
+            "struct ${1:ContentView}: View {",
+            "   var body: some View {",
+            "       ${2}${0}",
+            "   }",
+            "}",
+            "",
+            "struct ${1}_Previews: PreviewProvider {",
+            "   static var previews: some View {",
+            "       ${1}()",
+            "      .previewDisplayName(\"${1} Preview}\")",
+            "   }",
+            "}"
+       ],
+       "description": "SwiftUI view with modern preview"
+    },
+    "swift-script": {
+        "prefix": "swift-script",
+        "body": [
+            "#!/usr/bin/env swift",
+            "",
+            "// Imports",
+            "// import Foundation",
+            "// import SwiftNIO",
+            "// import Dispatch   // Grand Central Dispatch - Concurrent code",
+            "// import Swift-Log  // : Logging without being tied to a specific backend.",
+            "",
+            "// import Swift-Testing  // Modern, Apple test framework for Swift.",
+            "// import XCTest         // Older, Apple test framework)",
+            "",
+            "import Foundation // For CommandLine",
+            "",
+            "// arg 0 == command name",
+            "// arg 1 == argument",
+            "// argc == 2",
+            "if CommandLine.argc > 1 {",
+            "    let arg = CommandLine.arguments[1]  // Store first argument.",
+            "    if let n = Int(arg) {               // If it converts to Int,",
+            "        print(n)                        // print n.",
+            "        exit(0)",
+            "    }",
+            "}",
+            "",
+            "print(\"Usage: main <num>\")      // print usage and exit."
+        ],
+        "description": "Template for running a swift script from the shell"
+    },
+    "codable-struct": {
+        "prefix": "codable-struct",
+        "body": [
+            "import Foundation",
+            "",
+            "struct ${1:Name}: Codable {",
+            "    let ${2:Variable}: ${3:Type}",
+            "",
+            "    enum CodingKeys: String, CodingKey {",
+            "        case ${2} = \"${4:name}\"",
+            "    }",
+            "",
+            "    init(from decoder: Decoder) throws {",
+            "        let container = try decoder.container(keyedBy: CodingKeys.self)",
+            "        self.${2} = try container.decode(${3}.self, forKey: .${2})",
+            "    }",
+            "}",
+        ],
+        "description": "Codable struct"
+    }
+}
+

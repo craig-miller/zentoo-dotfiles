@@ -1,0 +1,104 @@
+{
+  "article": {
+    "prefix": "article",
+    "body": [
+
+        "---",
+
+        "id:  $TM_FILENAME_BASE",
+        "author: Craig Miller",
+        "title: ${1:title}",
+
+        "# subtitle: An optional subheading for your content.",
+        "subtitle: ${2:subtitle}",
+
+        "# date: Set to an ISO-8601 date for when this article was first published.",
+        "date: $CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE $CURRENT_HOUR:$CURRENT_MINUTE",
+
+        "# lastModified: Set to an ISO-8601 date for when this article was last changed. If this is not present, the published date will be used instead.",
+
+        "# tags: A comma-separated list of tags for this article. If you have enabled tag pages, these will be used to list matching content.",
+        "# Comment out until website supports tags",
+        "# tags: swift, saillab",
+
+        "# published: Set to false to leave this article unpublished on your site.",
+        "published: false",
+
+        "# image: The main image for this content. Will be used with content previews and social sharing.",
+        "image: /images/logos/sailboat-logo-light.svg",
+
+        "# imageDescription: Screenreader-friendly text describing your article’s main image.",
+        "alt: Sailboat Image ",
+
+        "# layout: The name of the ArticlePage struct in your site to use for this content.",
+        "# layout: ArticlePageLayout",
+
+        "# as the predefined fields, you can use the metadata dictionary to access any custom properties you have defined in the front matter.",
+        "# Note that the dictionary values are optionals: your page code must be able to deal with the dictionary item not existing!",
+        "# Text(article.metadata['CustomValue'] ?? 'Not defined')",
+        "---",
+
+        "# Embedded Swift Blinky",
+        "",
+        "## Introduction"
+    ]
+  },
+
+"script-article": {
+  "prefix": "script-article",
+  "body": [
+    "---",
+    "id: $TM_FILENAME_BASE",
+    "author: Craig Miller",
+    "title: ${1:Video Title}",
+    "subtitle: ${2:Optional Subtitle}",
+    "date: $CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE $CURRENT_HOUR:$CURRENT_MINUTE",
+    "published: false",
+    "image: /images/logos/sailboat-logo-light.svg",
+    "alt: Sailboat Image",
+    "---",
+    "",
+    "# ${1:Video Title}",
+    "",
+    "## Introduction",
+    "30 seconds to 1 minute",
+    "Quick, engaging overview to hook viewers.",
+    "",
+    "## Prerequisites",
+    "15 to 30 seconds",
+    "Brief mention if needed, sometimes skipped.",
+    "",
+    "## Setup Instructions",
+    "1 to 2 minutes",
+    "Depends on complexity of environment setup.",
+    "",
+    "## Concept Explanation",
+    "3 to 6 minutes",
+    "Core part explaining theory or syntax.",
+    "",
+    "## Code Demonstration",
+    "4 to 8 minutes",
+    "Hands-on coding with commentary, often the longest section.",
+    "",
+    "## Common Mistakes",
+    "30 seconds to 1 minute",
+    "Optional, often integrated within code demonstration.",
+    "",
+    "## Real-World Examples",
+    "1 to 3 minutes",
+    "Practical application or mini-project.",
+    "",
+    "## Summary/Recap",
+    "30 seconds to 1 minute",
+    "Reinforces key takeaways.",
+    "",
+    "## Call to Action",
+    "15 to 30 seconds",
+    "Encourages engagement (subscribe, comment, etc.).",
+    "",
+    "## Additional Resources",
+    "Usually in video description",
+    "Not typically part of video runtime, but linked externally."
+  ]
+}
+}

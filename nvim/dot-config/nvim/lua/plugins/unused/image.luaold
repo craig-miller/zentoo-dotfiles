@@ -1,0 +1,15 @@
+return {
+    "3rd/image.nvim",
+    -- dependencies are required to build the magick rock
+    dependencies = {
+        "vhyrro/luarocks.nvim",
+    },
+    opts = {
+        backend = "kitty", -- or "ueberzug", "wezterm", etc.
+        -- other configuration options can be added here
+        -- hijack_file_patterns = { "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.svg" },
+    },
+    config = function()
+        require("image").setup()
+    end,
+}

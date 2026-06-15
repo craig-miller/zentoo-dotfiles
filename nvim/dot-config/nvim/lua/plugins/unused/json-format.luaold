@@ -1,0 +1,8 @@
+return {
+    -- Commented out because it has annoying output on startup.
+    -- "osullivandonal/json-format.nvim",
+    -- opts = {
+    --     expand_key = "<leader>je",
+    --     minify_key = "<leader>jm"
+    -- }
+}

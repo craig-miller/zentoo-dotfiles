@@ -1,0 +1,116 @@
+-- @see https://www.lazyvim.org/configuration/plugins
+return {
+    {
+        "snacks.nvim",
+        keys = {
+            { "<leader>gi", function() Snacks.picker.gh_issue() end,                  desc = "GitHub Issues (open)" },
+            { "<leader>gI", function() Snacks.picker.gh_issue({ state = "all" }) end, desc = "GitHub Issues (all)" },
+            { "<leader>gp", function() Snacks.picker.gh_pr() end,                     desc = "GitHub Pull Requests (open)" },
+            { "<leader>gP", function() Snacks.picker.gh_pr({ state = "all" }) end,    desc = "GitHub Pull Requests (all)" },
+        },
+        opts = {
+            gh = {
+            },
+            picker = {
+                sources = {
+                    gh_issue = {
+                        -- your gh_issue picker configuration comes here
+                        -- or leave it empty to use the default settings
+                    },
+                    gh_pr = {
+                        -- your gh_pr picker configuration comes here
+                        -- or leave it empty to use the default settings
+                    }
+                },
+                -- your picker configuration comes here
+                -- or leave it empty to use the default settings
+                -- refer to the configuration section below
+            },
+            image = {
+                -- your image configuration comes here
+                -- or leave it empty to use the default settings
+                -- refer to the configuration section below
+            },
+
+            dashboard = {
+                sections = {
+                    { section = "header" }
+                },
+                preset = {
+                    --                     header = [[
+                    -- ╭────────────────╮
+                    -- │   Developer   │
+                    -- ╰────────────────╯
+                    --           ]],
+                    header = [[
+   Developer
+          ]],
+                    keys = {
+
+                        -- Projects
+                        -- {
+                        --     icon = " ",
+                        --     key = "p",
+                        --     desc = "Projects",
+                        --     action = "<CMD>NeovimProjectDiscover<CR>"
+                        -- },
+                        -- { icon = " ", key = "rp", desc = "Recent Projects", action = "<CMD>NeovimProjectHistory<CR>" },
+                        -- load the session for the current directory
+                        -- {
+                        --     icon = " ",
+                        --     key = "sl",
+                        --     desc = "Load Session for current directory",
+                        --     action = function()
+                        --         require("persistence").load()
+                        --     end
+                        -- },
+                        -- vim.keymap.set("n", "<leader>qs", function() require("persistence").load() end)
+
+                        -- select a session to load
+                        -- { icon = " ", key = "rp", desc = "Recent Projects", action = "<CMD>NeovimProjectHistory<CR>" },
+                        -- vim.keymap.set("n", "<leader>qS", function() require("persistence").select() end)
+
+                        -- load the last session
+                        -- { icon = " ", key = "rp", desc = "Recent Projects", action = "<CMD>NeovimProjectHistory<CR>" },
+                        -- vim.keymap.set("n", "<leader>ql", function() require("persistence").load({ last = true }) end)
+
+                        -- stop Persistence => session won't be saved on exit
+                        -- { icon = " ", key = "rp", desc = "Recent Projects", action = "<CMD>NeovimProjectHistory<CR>" },
+                        -- vim.keymap.set("n", "<leader>qd", function() require("persistence").stop() end)
+
+                        -- Files
+                        -- {
+                        --     icon = " ",
+                        --     key = "ff",
+                        --     desc = "Files",
+                        --     action = ":lua Snacks.dashboard.pick('files')",
+                        -- },
+                        -- {
+                        --     icon = " ",
+                        --     key = "rf",
+                        --     desc = "Recent Files",
+                        --     action = ":lua Snacks.dashboard.pick('oldfiles')",
+                        -- },
+                        -- { icon = " ", key = "nf", desc = "New File", action = ":ene | startinsert" },
+                        -- {
+                        --     icon = " ",
+                        --     key = "fg",
+                        --     desc = "Find Text",
+                        --     action = ":lua Snacks.dashboard.pick('live_grep')",
+                        -- },
+                        -- {
+                        --     icon = " ",
+                        --     key = "c",
+                        --     desc = "Config",
+                        --     action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})",
+                        -- },
+                        -- { icon = " ", key = "s", desc = "Restore Session", section = "session" },
+                        -- { icon = " ", key = "x", desc = "Lazy Extras", action = ":LazyExtras" },
+                        -- { icon = "󰒲 ", key = "l", desc = "Lazy", action = ":Lazy" },
+                        -- { icon = " ", key = "<leader>q", desc = "Quit", action = ":qa" },
+                    },
+                },
+            },
+        },
+    },
+}
