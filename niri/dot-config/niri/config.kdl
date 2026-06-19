@@ -91,11 +91,24 @@ input {
     position x=2560 y=0
     variable-refresh-rate
 }
+
+output "HDMI-A-1" {
+    mode "3840x2160@60.000"
+    scale 1.25
+    position x=0 y=0
+}
+
+output "eDP-1" {
+    mode "3456x2234@120.000"
+    scale 2
+    position x=672 y=1728
+}
 // Settings that influence how windows are positioned and sized.
 // Find more information on the wiki:
 // https://github.com/YaLTeR/niri/wiki/Configuration:-Layout
 layout {
     // Set gaps around windows in logical pixels.
+    gaps 8
     background-color "transparent"
     // When to center a column when changing focus, options are:
     // - "never", default behavior, focusing an off-screen column will keep at the left
@@ -121,7 +134,7 @@ layout {
     // default-column-width {fixed 3840}
     // If you leave the brackets empty, the windows themselves will decide their initial width.
     // default-column-width {}
-    
+
     // By default focus ring and border are rendered as a solid background rectangle
     // behind windows. That is, they will show up through semitransparent windows.
     // This is because windows using client-side decorations can have an arbitrary shape.
@@ -140,7 +153,7 @@ layout {
         urgent-color   "#cc4444"      // Softer red (matugen override in colors.kdl)
     }
     focus-ring {
-        width 2
+        width 1
         active-color   "#7aa2f7"      // matugen override in colors.kdl
         inactive-color "#3b4261"      // matugen override in colors.kdl
     }
@@ -223,7 +236,7 @@ window-rule {
 window-rule {
     match app-id=r#"^org\.gnome\."#
     draw-border-with-background false
-    geometry-corner-radius 6 
+    geometry-corner-radius 6
     clip-to-geometry true
 }
 window-rule {
@@ -299,27 +312,45 @@ binds {
     // ── Overview ──────────────────────────────────────
     Mod+D { toggle-overview; }
 
-    // ── Focus (HJKL + arrows) ─────────────────────────
-    Mod+H     { focus-column-left; }
-    Mod+L     { focus-column-right; }
-    Mod+J     { focus-window-down; }
-    Mod+K     { focus-window-up; }
-    Mod+Left  { focus-column-left; }
-    Mod+Right { focus-column-right; }
-    Mod+Down  { focus-window-down; }
-    Mod+Up    { focus-window-up; }
-    Mod+Home  { focus-column-first; }
-    Mod+End   { focus-column-last; }
+    // ── Focus (HJKL + arrows) — falls through to neighbor monitor/workspace ──
+    Mod+H     { focus-column-or-monitor-left; }
+    Mod+L     { focus-column-or-monitor-right; }
+    Mod+J     { focus-window-or-workspace-down; }
+    Mod+K     { focus-window-or-workspace-up; }
+    Mod+Left  { focus-column-or-monitor-left; }
+    Mod+Right { focus-column-or-monitor-right; }
+    Mod+Down  { focus-window-or-workspace-down; }
+    Mod+Up    { focus-window-or-workspace-up; }
 
-    // ── Move windows ──────────────────────────────────
-    Mod+Shift+H     { move-column-left; }
-    Mod+Shift+L     { move-column-right; }
-    Mod+Shift+J     { move-window-down; }
-    Mod+Shift+K     { move-window-up; }
-    Mod+Shift+Left  { move-column-left; }
-    Mod+Shift+Right { move-column-right; }
-    Mod+Shift+Down  { move-window-down; }
-    Mod+Shift+Up    { move-window-up; }
+    // ── Move windows (Mod+Alt) — falls through to neighbor monitor/workspace ──
+    Mod+Alt+H     { move-column-left-or-to-monitor-left; }
+    Mod+Alt+L     { move-column-right-or-to-monitor-right; }
+    Mod+Alt+J     { move-window-down-or-to-workspace-down; }
+    Mod+Alt+K     { move-window-up-or-to-workspace-up; }
+    Mod+Alt+Left  { move-column-left-or-to-monitor-left; }
+    Mod+Alt+Right { move-column-right-or-to-monitor-right; }
+    Mod+Alt+Down  { move-window-down-or-to-workspace-down; }
+    Mod+Alt+Up    { move-window-up-or-to-workspace-up; }
+
+    // ── Focus between monitors (Mod+Shift) ────────────
+    Mod+Shift+H     { focus-monitor-left; }
+    Mod+Shift+L     { focus-monitor-right; }
+    Mod+Shift+J     { focus-monitor-down; }
+    Mod+Shift+K     { focus-monitor-up; }
+    Mod+Shift+Left  { focus-monitor-left; }
+    Mod+Shift+Right { focus-monitor-right; }
+    Mod+Shift+Down  { focus-monitor-down; }
+    Mod+Shift+Up    { focus-monitor-up; }
+
+    // ── Move column to another monitor (Mod+Alt+Shift) ─
+    Mod+Alt+Shift+H     { move-column-to-monitor-left; }
+    Mod+Alt+Shift+L     { move-column-to-monitor-right; }
+    Mod+Alt+Shift+J     { move-column-to-monitor-down; }
+    Mod+Alt+Shift+K     { move-column-to-monitor-up; }
+    Mod+Alt+Shift+Left  { move-column-to-monitor-left; }
+    Mod+Alt+Shift+Right { move-column-to-monitor-right; }
+    Mod+Alt+Shift+Down  { move-column-to-monitor-down; }
+    Mod+Alt+Shift+Up    { move-column-to-monitor-up; }
 
     // ── Consume / expel from column ───────────────────
     Mod+Comma  { consume-window-into-column; }
@@ -352,18 +383,13 @@ binds {
     Mod+Shift+1 { move-column-to-workspace 1; }
     Mod+Shift+2 { move-column-to-workspace 2; }
     // Mod+Shift+3 / Mod+Shift+4 reserved for Mac-style screenshots below.
-    // To move a column to ws 3 or 4: focus that workspace first (Mod+3 / Mod+4)
-    // then Mod+Shift+Page_Up/Down — or use the overview (Mod+D).
+    // To move a column to ws 3 or 4, focus that workspace first (Mod+3 / Mod+4),
+    // or use the overview (Mod+D).
     Mod+Shift+5 { move-column-to-workspace 5; }
     Mod+Shift+6 { move-column-to-workspace 6; }
     Mod+Shift+7 { move-column-to-workspace 7; }
     Mod+Shift+8 { move-column-to-workspace 8; }
     Mod+Shift+9 { move-column-to-workspace 9; }
-
-    Mod+Page_Down       { focus-workspace-down; }
-    Mod+Page_Up         { focus-workspace-up; }
-    Mod+Shift+Page_Down { move-column-to-workspace-down; }
-    Mod+Shift+Page_Up   { move-column-to-workspace-up; }
 
     // ── Mouse / trackpad ──────────────────────────────
     Mod+WheelScrollDown       cooldown-ms=150 { focus-workspace-down; }
@@ -404,3 +430,11 @@ binds {
 }
 
 include "noctalia.kdl"
+
+// Camera preview launcher (Open Camera .desktop, Chapter 22)
+window-rule {
+    match app-id=r#"^mpv-webcam$"#
+    open-floating true
+    default-column-width { fixed 960; }
+    default-window-height { fixed 540; }
+}
