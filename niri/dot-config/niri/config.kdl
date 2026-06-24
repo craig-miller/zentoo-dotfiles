@@ -283,6 +283,12 @@ window-rule {
     open-floating true
 }
 
+window-rule {
+    match app-id="pass-picker"
+    open-floating true
+    default-column-width { fixed 600; }
+}
+
 debug {
     honor-xdg-activation-with-invalid-serial
 }
@@ -307,6 +313,7 @@ binds {
 
     // ── Window / session ──────────────────────────────
     Mod+Q       { close-window; }
+    Mod+P       { spawn "foot" "--app-id=pass-picker" "fish" "-c" "pt"; }
     Mod+Shift+E { quit; }
 
     // ── Overview ──────────────────────────────────────

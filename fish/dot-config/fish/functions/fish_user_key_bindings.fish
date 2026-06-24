@@ -13,4 +13,8 @@ function fish_user_key_bindings
     # zoxide picker on Ctrl+S (Mac parity).
     bind \cs __zoxide_picker
     bind -M insert \cs __zoxide_picker
+
+    # pass picker on Ctrl+P.
+    bind \cp pp
+    bind -M insert \cp pp
 end

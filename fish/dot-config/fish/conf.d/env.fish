@@ -11,3 +11,6 @@ set -gx FZF_CTRL_T_COMMAND "$FZF_DEFAULT_COMMAND"
 # colors via include), so bat retints with the wallpaper.
 set -gx BAT_THEME ansi
 set -gx MANPAGER "sh -c 'col -bx | bat -l man -p'"
+
+# gpg-agent — unified SSH+GPG agent (see ~/.gnupg/gpg-agent.conf)
+set -gx SSH_AUTH_SOCK (gpgconf --list-dirs agent-ssh-socket)
