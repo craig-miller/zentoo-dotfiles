@@ -285,6 +285,7 @@ window-rule {
 
 window-rule {
     match app-id="pass-picker"
+    match app-id="pass-otp-picker"
     open-floating true
     default-column-width { fixed 600; }
 }
@@ -308,7 +309,7 @@ binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 
     // ── Apps ──────────────────────────────────────────
-    Mod+Return { spawn "foot"; }
+    Mod+Return { spawn "footclient"; }
     Mod+Space  { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
 
     // ── Window / session ──────────────────────────────
@@ -442,6 +443,4 @@ include "noctalia.kdl"
 window-rule {
     match app-id=r#"^mpv-webcam$"#
     open-floating true
-    default-column-width { fixed 960; }
-    default-window-height { fixed 540; }
 }
