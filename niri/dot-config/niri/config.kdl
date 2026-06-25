@@ -286,9 +286,14 @@ window-rule {
 window-rule {
     match app-id="pass-picker"
     match app-id="pass-otp-picker"
-    match app-id="network-browser"
     open-floating true
     default-column-width { fixed 600; }
+}
+
+window-rule {
+    match app-id="network-browser"
+    open-floating true
+    default-column-width { fixed 900; }
 }
 
 debug {
