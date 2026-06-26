@@ -1,0 +1,37 @@
+# Mount management — all under M prefix (yazi convention from gvfs.yazi).
+# g stays reserved for "go to" jumps.
+
+[[mgr.prepend_keymap]]
+on   = ["M", "m"]
+run  = "plugin gvfs -- select-then-mount --jump"
+desc = "Mount: network share or device (jump to it)"
+
+[[mgr.prepend_keymap]]
+on   = ["M", "u"]
+run  = "plugin gvfs -- select-then-unmount --eject"
+desc = "Mount: unmount / eject"
+
+[[mgr.prepend_keymap]]
+on   = ["M", "a"]
+run  = "plugin gvfs -- add-mount"
+desc = "Mount: add network share URI (smb://, sftp://, ...)"
+
+[[mgr.prepend_keymap]]
+on   = ["M", "e"]
+run  = "plugin gvfs -- edit-mount"
+desc = "Mount: edit saved URI (clears its saved password)"
+
+[[mgr.prepend_keymap]]
+on   = ["M", "r"]
+run  = "plugin gvfs -- remove-mount"
+desc = "Mount: remove saved URI (clears its saved password)"
+
+[[mgr.prepend_keymap]]
+on   = ["M", "b"]
+run  = "plugin mount"
+desc = "Mount: block-device UI"
+
+[[mgr.prepend_keymap]]
+on   = ["M", "s"]
+run  = "plugin sshfs -- menu"
+desc = "Mount: SSHFS menu"

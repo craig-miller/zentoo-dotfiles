@@ -1,0 +1,22 @@
+[[plugin.deps]]
+use = "uhs-robert/sshfs"
+rev = "a8b8903"
+hash = "8c1b36103121a66b37308afaf7124575"
+
+[[plugin.deps]]
+use = "AnirudhG07/archivemount"
+rev = "3d353c4"
+hash = "28caf2541e627582e75add7a9f98a32a"
+
+[[plugin.deps]]
+use = "yazi-rs/plugins:mount"
+rev = "38efe09"
+hash = "e3260d0b1feded8c8e3ae3afa1169e30"
+
+[[plugin.deps]]
+use = "craig-miller/gvfs"
+rev = "bfcc670"
+hash = "d0c475736352a48b09c121e2399ad261"
+
+[flavor]
+deps = []
