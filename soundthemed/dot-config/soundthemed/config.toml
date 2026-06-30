@@ -1,19 +1,20 @@
-theme = "freedesktop"
+theme = "Materia"
 enabled = true
 battery_low_percent = 15
 battery_critical_percent = 5
-startup_sound = "none"
-shutdown_sound = "none"
+startup_sound = "soundthemed-start"
+shutdown_sound = "soundthemed-stop"
 
 [events]
-power-unplug = "none"
 power-plug = "none"
+alarm-clock-elapsed = "alarm-clock-elapsed"
+power-unplug = "none"
 
 [sources]
-udev = false
+udev = true
 battery = true
-network = false
-session = false
-volume = false
+network = true
+session = true
+volume = true
 notifications = true
 dbus_service = true
