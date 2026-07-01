@@ -3,7 +3,6 @@
 // Check the wiki for a full description of the configuration:
 // https://github.com/YaLTeR/niri/wiki/Configuration:-Introduction
 spawn-at-startup "dex" "-a"
-spawn-at-startup "kanata"
 spawn-at-startup "sh" "-c" "exec ~/.config/niri/noctalia-launcher"
 
 config-notification {
