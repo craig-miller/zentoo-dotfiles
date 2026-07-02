@@ -34,4 +34,4 @@ enabled = true
 # Flip vimb dark-mode to match the system theme.  Helper script lives at
 # ~/dotfiles/bin/dot-local/bin/vimb-theme-flip; mode name (dark|light) is
 # passed as $1.
-theme_mode_changed = "vimb-theme-flip"
+theme_mode_changed = "/home/craig/.local/bin/vimb-theme-flip"
