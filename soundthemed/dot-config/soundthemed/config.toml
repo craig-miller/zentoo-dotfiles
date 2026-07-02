@@ -6,9 +6,9 @@ startup_sound = "soundthemed-start"
 shutdown_sound = "soundthemed-stop"
 
 [events]
-power-plug = "none"
-alarm-clock-elapsed = "alarm-clock-elapsed"
 power-unplug = "none"
+alarm-clock-elapsed = "alarm-clock-elapsed"
+power-plug = "none"
 
 [sources]
 udev = true
