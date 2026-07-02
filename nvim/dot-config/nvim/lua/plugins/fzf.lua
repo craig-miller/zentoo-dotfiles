@@ -5,6 +5,11 @@ return {
     dependencies = { "nvim-mini/mini.icons" },
     opts = {
         file_icons = "mini",
+        -- Follow symlinks: many of my dotfiles ($HOME, ~/.config/*) are
+        -- Stow-managed symlinks into ~/dotfiles/, which rg skips by default.
+        files = {
+            rg_opts = [[--color=never --files --follow -g "!.git" -g "!.jj"]],
+        },
         fzf_colors = {
             true, -- inherit fzf colors that aren't specified below from
             --     -- the auto-generated theme similar to `fzf_colors=true`
@@ -98,10 +103,15 @@ return {
         },
 
         -- Find a config file
+        -- Point at the real path (~/dotfiles/nvim/dot-config/nvim), not the
+        -- Stow-symlinked ~/.config/nvim, so buffer paths land inside the git
+        -- repo and gitsigns / :Git etc. work correctly.
         {
             "<leader>fc",
             function()
-                require("fzf-lua").files({ cwd = vim.fn.stdpath("config") })
+                require("fzf-lua").files({
+                    cwd = vim.fn.expand("~/dotfiles/nvim/dot-config/nvim"),
+                })
             end,
             desc = "[F]ind [C]onfig",
         },
@@ -150,11 +160,11 @@ return {
             desc = "Fzf fuzzy finder",
         },
         {
-            "<leader>sw",
+            "<leader>tw",
             function()
                 require("fzf-lua").diagnostics_workspace()
             end,
-            desc = "[S]how [W]orkspace quickfix list",
+            desc = "[T]oggle [W]orkspace diagnostics",
         },
     },
 }

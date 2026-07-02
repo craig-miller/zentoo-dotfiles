@@ -85,6 +85,21 @@ return {
             -- TODO: Move FZF-LUA keymaps here
             { "<leader>f", group = "Find",   mode = { "n" } },
 
+            -- Make — dispatches through the project's justfile (see
+            -- lang/swift.lua). Targets: debug/release/run-debug/run-release/
+            -- test/clean; JustfileInit creates a starter justfile in Swift
+            -- PM projects.
+            { "<leader>m",   group = "Make",                                                       mode = { "n" } },
+            { "<leader>mi",  "<Cmd>JustfileInit<CR>",     desc = "[I]nit justfile",                mode = { "n" } },
+            { "<leader>mc",  "<Cmd>make clean<CR>",       desc = "[C]lean",                        mode = { "n" } },
+            { "<leader>mb",  group = "Build",                                                      mode = { "n" } },
+            { "<leader>mbd", "<Cmd>make debug<CR>",       desc = "Build [D]ebug",                  mode = { "n" } },
+            { "<leader>mbr", "<Cmd>make release<CR>",     desc = "Build [R]elease",                mode = { "n" } },
+            { "<leader>mr",  group = "Run",                                                        mode = { "n" } },
+            { "<leader>mrd", "<Cmd>make run-debug<CR>",   desc = "Run [D]ebug",                    mode = { "n" } },
+            { "<leader>mrr", "<Cmd>make run-release<CR>", desc = "Run [R]elease",                  mode = { "n" } },
+            { "<leader>mrt", "<Cmd>make test<CR>",        desc = "Run [T]ests",                    mode = { "n" } },
+
             -- { "<leader>s",   group = "Strudel",           mode = { "n" } },
 
             -- :Noice or :Noice history shows the message history:Noice last shows the last message in a popup
@@ -173,8 +188,42 @@ return {
         { "<leader>tm", "<cmd>Noice fzf<cr>",    desc = "Messages",                mode = { "n", "v" } },
         { "<leader>q",  ":qa<CR>",               desc = "Quit",                    mode = { "n" } },
 
-        -- Maximize
-        { "<leader>m",  ":MaximizerToggle<CR>",  desc = "Maximize pane",           mode = { "n" } },
+        -- Buffer navigation with Tab / Shift-Tab (saves first if the current
+        -- buffer is modified — avoids "no write since last change" prompts).
+        {
+            "<Tab>",
+            function()
+                if vim.bo.modifiable and not vim.bo.readonly and vim.bo.modified then
+                    vim.cmd("write")
+                end
+                vim.cmd("bnext")
+            end,
+            desc = "Next buffer (save first)",
+            mode = { "n" },
+        },
+        {
+            "<S-Tab>",
+            function()
+                if vim.bo.modifiable and not vim.bo.readonly and vim.bo.modified then
+                    vim.cmd("write")
+                end
+                vim.cmd("bprevious")
+            end,
+            desc = "Previous buffer (save first)",
+            mode = { "n" },
+        },
+
+        -- Cmd-S save. Terminal must send <D-s> (Ghostty is configured to on
+        -- this machine; other terminals will silently no-op).
+        { "<D-s>", "<Cmd>write<CR>", desc = "Save", mode = { "n", "v", "i" } },
+
+        -- Alt-b / Alt-r quick access for build/run debug. Global so they
+        -- work from any buffer; the current buffer's makeprg decides what
+        -- gets built (lang/swift.lua points swift buffers at their
+        -- justfile, other filetypes fall back to whatever makeprg they've
+        -- been assigned).
+        { "<A-b>", "<Cmd>make debug<CR>",     desc = "Build (debug)", mode = { "n" } },
+        { "<A-r>", "<Cmd>make run-debug<CR>", desc = "Run (debug)",   mode = { "n" } },
 
         -- icon = { icon = " ", hl = "MiniIconsClose", color = "purple" },
     },

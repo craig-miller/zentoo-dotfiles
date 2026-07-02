@@ -26,17 +26,6 @@ vim.api.nvim_create_autocmd({ "BufWritePre" }, {
     end,
 })
 
--- If we open a swift file, automatically set:
--- - nvim makeprg to swift build if there's a Package.swift file
---   or to swiftc if it's a standalone swift file
--- - errorformat to one that's compatible with swift
-vim.api.nvim_create_autocmd("FileType", {
-    pattern = "swift",
-    callback = function()
-        vim.cmd("SwiftSetup")
-    end,
-})
-
 vim.api.nvim_create_autocmd("BufWritePre", {
     group = vim.api.nvim_create_augroup("LspFormatting", {}),
     callback = function(args)
@@ -120,13 +109,21 @@ vim.api.nvim_create_autocmd("User", {
 vim.api.nvim_create_autocmd("QuickFixCmdPost", {
     pattern = "make",
     callback = function()
-        local qflist = vim.fn.getqflist()
-        if qflist and #qflist > 0 then
-            -- Open Trouble quickfix list if errors exist
+        -- Count only "valid" entries (with a real file:line). Build tools
+        -- like `swift build` print progress lines that get captured as
+        -- text-only entries with valid = 0; Trouble filters those out and
+        -- warns "no results", which is what we want to avoid triggering.
+        local valid = 0
+        for _, e in ipairs(vim.fn.getqflist()) do
+            if e.valid == 1 and e.bufnr and e.bufnr > 0 then
+                valid = valid + 1
+            end
+        end
+        if valid > 0 then
             vim.cmd("Trouble qflist")
         else
-            -- Close Trouble quickfix list if no errors
             vim.cmd("Trouble close")
+            vim.notify("Build succeeded", vim.log.levels.INFO, { title = "make" })
         end
     end,
 })

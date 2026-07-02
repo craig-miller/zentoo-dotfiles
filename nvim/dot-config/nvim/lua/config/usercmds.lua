@@ -1,56 +1,41 @@
--- Initialize build mode global variable (default to debug)
-vim.g.swift_build_mode = vim.g.swift_build_mode or "debug"
-vim.g.swift_is_package = vim.g.swift_is_package or false
-vim.g.swift_package_dir = nil
+-- Create a `justfile` in the current buffer's Swift PM project root with
+-- the standard target set expected by our <leader>m* keybinds. Walks up
+-- from the current buffer looking for Package.swift; refuses to run
+-- outside a Swift PM project or clobber an existing justfile.
+vim.api.nvim_create_user_command("JustfileInit", function()
+    local pkg = vim.fn.findfile("Package.swift", vim.fn.expand("%:p:h") .. ";")
+    if pkg == "" then
+        vim.notify("JustfileInit: no Package.swift found above this buffer",
+            vim.log.levels.WARN)
+        return
+    end
+    local pkg_dir = vim.fn.fnamemodify(pkg, ":p:h")
+    local justfile = pkg_dir .. "/justfile"
 
--- User command to select and load the correct compiler
-vim.api.nvim_create_user_command("SwiftSetup", function()
-    local function find_package_swift()
-        local path = vim.fn.expand('%:p:h')
-        while path ~= "/" do
-            if vim.fn.filereadable(path .. "/Package.swift") == 1 then
-                -- print(path)
-                return path
-            end
-            path = vim.fn.fnamemodify(path, ":h")
-        end
-        return nil
+    if vim.fn.filereadable(justfile) == 1 then
+        vim.notify("JustfileInit: justfile already exists at " .. justfile,
+            vim.log.levels.INFO)
+        return
     end
 
-    local package_dir = find_package_swift()
-    local build_mode = vim.g.swift_build_mode or "release"
-
-    if package_dir then
-        vim.g.swift_is_package = true
-        vim.g.swift_package_dir = package_dir
-        if build_mode == "debug" then
-            print("Debug Swift PM Build")
-            vim.cmd("compiler swiftpm_debug")
-        else
-            -- print("Release Swift PM build")
-            vim.cmd("compiler swiftpm")
-        end
-    else
-        vim.g.swift_is_package = false
-        vim.g.swift_package_dir = nil
-        if build_mode == "debug" then
-            -- print("Debug swift compile")
-            vim.cmd("compiler swift_debug")
-        else
-            -- print("Release swift compile")
-            vim.cmd("compiler swift")
-        end
-    end
-end, {})
-
--- Toggle command updates mode and calls above command to change compiler
-vim.api.nvim_create_user_command("SwiftBuildToggle", function()
-    if vim.g.swift_build_mode == "release" then
-        vim.g.swift_build_mode = "debug"
-        print("Swift build mode set to DEBUG")
-    else
-        vim.g.swift_build_mode = "release"
-        print("Swift build mode set to RELEASE")
-    end
-    vim.cmd("SwiftSetup")
+    vim.fn.writefile({
+        "debug:",
+        "    swift build -c debug",
+        "",
+        "release:",
+        "    swift build -c release",
+        "",
+        "run-debug:",
+        "    swift run -c debug",
+        "",
+        "run-release:",
+        "    swift run -c release",
+        "",
+        "test:",
+        "    swift test",
+        "",
+        "clean:",
+        "    swift package clean",
+    }, justfile)
+    vim.notify("JustfileInit: created " .. justfile, vim.log.levels.INFO)
 end, {})
