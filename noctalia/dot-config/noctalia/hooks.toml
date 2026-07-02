@@ -1,0 +1,10 @@
+# Noctalia hooks — event-driven shell commands.  Loads after config.toml
+# alphabetically; noctalia deep-merges TOML sections across files so
+# hooks live cleanly on their own.
+
+[hooks]
+# When the system theme flips between dark and light, run vimb's helper
+# (installed by www-client/vimb → /usr/bin/vimb-theme-flip).  The helper
+# reads $NOCTALIA_THEME_MODE from the environment, rewrites the vimb
+# config, and pkill -USR2 -x vimb to reload every live vimb window.
+theme_mode_changed = "/usr/bin/vimb-theme-flip"

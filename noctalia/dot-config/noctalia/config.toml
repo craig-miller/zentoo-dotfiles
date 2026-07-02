@@ -28,10 +28,3 @@ command = "noctalia:dpms-off"
 resume_command = "noctalia:dpms-on"
 enabled = true
 
-# Runtime hooks: run a shell command when noctalia broadcasts an event.
-# See references/configuration.md § [hooks] in the noctalia customization skill.
-[hooks]
-# Flip vimb dark-mode to match the system theme.  Helper script lives at
-# ~/dotfiles/bin/dot-local/bin/vimb-theme-flip; mode name (dark|light) is
-# passed as $1.
-theme_mode_changed = "/home/craig/.local/bin/vimb-theme-flip"
