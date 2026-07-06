@@ -1,8 +1,9 @@
-# eza — modern ls replacement (no --icons; no Nerd Font installed).
-abbr -a ls 'eza'
-abbr -a ll 'eza -l --git'
-abbr -a la 'eza -la --git'
-abbr -a lt 'eza --tree --git-ignore'
+# eza — modern ls replacement. --icons pulls file-type glyphs from the
+# system monospace font (JetBrainsMono Nerd Font Mono, per Step 3).
+abbr -a ls 'eza --icons'
+abbr -a ll 'eza -l --git --icons'
+abbr -a la 'eza -la --git --icons'
+abbr -a lt 'eza --tree --git-ignore --icons'
 
 # stow with our dotfiles flags — --dotfiles for dot-* path mangling,
 # --no-folding to force per-file symlinks (avoid directory-level),
