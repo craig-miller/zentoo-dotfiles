@@ -1,0 +1,15 @@
+# Noctalia user-template registration for vimb chrome.
+#
+# On every palette change (dark/light flip, wallpaper regeneration,
+# palette re-selection), noctalia renders templates/vimb.tpl with the
+# active color roles substituted, writes the result to output_path, then
+# runs post_hook.  vimb's SIGUSR2 handler re-sources /etc/vimb/config,
+# which sources the rendered file, which re-fires every `set *-css=...`
+# line, live-updating the GTK CSS provider without a restart.
+
+[theme.templates.user.vimb]
+enabled     = true
+input_path  = "~/.config/noctalia/templates/vimb.tpl"
+output_path = "~/.config/vimb/noctalia-theme"
+post_hook   = "pkill -USR2 -x vimb || true"
+index       = 100
