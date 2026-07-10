@@ -8,9 +8,9 @@ vim.env.PATH = mason_bin .. ":" .. vim.env.PATH
 
 -- Configure LSP servers
 vim.lsp.enable({
-    "lua_ls",
+    "lua-language-server",
     "sourcekit-lsp",
-    "yamlls",
+    "tinymist",
     -- "bibli_ls"
 })
 

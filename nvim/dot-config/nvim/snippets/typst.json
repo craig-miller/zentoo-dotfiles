@@ -1,0 +1,17 @@
+{
+    "heading1": {
+        "prefix": "h1",
+        "body": ["= $1", "", "$0"],
+        "description": "Top-level heading"
+    },
+    "heading2": {
+        "prefix": "h2",
+        "body": ["== $1", "", "$0"],
+        "description": "Second-level heading"
+    },
+    "displayeq": {
+        "prefix": "deq",
+        "body": ["$", "    $1", "$", "$0"],
+        "description": "Display equation"
+    }
+}

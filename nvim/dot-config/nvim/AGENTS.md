@@ -47,7 +47,7 @@ The repository includes compiler configurations for Swift development:
 - **Plugin configurations**: Place in `lua/plugins/` directory with descriptive names (e.g., `blink-cmp.lua`)
 - **Core configurations**: Place in `lua/core/` directory (e.g., `lazy.lua`, `lsp.lua`)
 - **Options and settings**: Place in `lua/config/` directory (e.g., `options.lua`, `autocmds.lua`)
-- **LSP configurations**: Place in `lsp/` directory with language-specific names (e.g., `lua_ls.lua`)
+- **LSP configurations**: Place in `lsp/` directory with language-specific names (e.g., `lua-language-server.lua`)
 
 #### Imports and Dependencies
 - Use `require()` for importing modules: `local lazy = require("lazy")`

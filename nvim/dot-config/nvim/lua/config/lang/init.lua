@@ -2,3 +2,5 @@
 -- directory and adding a require line below.
 
 require("config.lang.swift")
+require("config.lang.typst")
+

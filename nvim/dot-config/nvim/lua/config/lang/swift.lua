@@ -1,4 +1,4 @@
--- Swift buffer setup, per-file:
+-- Swift buffer setup + module.
 --   • Walks up from the buffer to find Package.swift.
 --   • If found, sets makeprg to `just --justfile <pkg>/justfile` so :make
 --     dispatches through the project's Justfile (see :JustfileInit to
@@ -31,3 +31,45 @@ vim.api.nvim_create_autocmd("FileType", {
         vim.opt_local.makeprg = "just --justfile " .. vim.fn.shellescape(justfile)
     end,
 })
+
+local M = {}
+
+function M.justfile_init()
+    local pkg = vim.fn.findfile("Package.swift", vim.fn.expand("%:p:h") .. ";")
+    if pkg == "" then
+        vim.notify("JustfileInit (swift): no Package.swift found above this buffer",
+            vim.log.levels.WARN)
+        return
+    end
+    local pkg_dir = vim.fn.fnamemodify(pkg, ":p:h")
+    local justfile = pkg_dir .. "/justfile"
+
+    if vim.fn.filereadable(justfile) == 1 then
+        vim.notify("JustfileInit: justfile already exists at " .. justfile,
+            vim.log.levels.INFO)
+        return
+    end
+
+    vim.fn.writefile({
+        "debug:",
+        "    swift build -c debug",
+        "",
+        "release:",
+        "    swift build -c release",
+        "",
+        "run-debug:",
+        "    swift run -c debug",
+        "",
+        "run-release:",
+        "    swift run -c release",
+        "",
+        "test:",
+        "    swift test",
+        "",
+        "clean:",
+        "    swift package clean",
+    }, justfile)
+    vim.notify("JustfileInit: created " .. justfile, vim.log.levels.INFO)
+end
+
+return M

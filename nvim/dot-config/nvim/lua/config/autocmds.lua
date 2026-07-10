@@ -37,7 +37,7 @@ vim.api.nvim_create_autocmd("BufWritePre", {
             async = false,
             filter = function(client)
                 -- only allow clients that advertise formatting capability
-                return client.server_capabilities and client.server_capabilities.documentFormattingProvider
+                return client:supports_method("textDocument/formatting")
             end,
         })
     end,
