@@ -123,7 +123,7 @@ layout {
         // For example, you can perfectly fit four windows sized "proportion 0.25" on an output.
         proportion 0.5
         proportion 0.75
-        proportion 0.95
+        proportion 1.0
         // Fixed sets the width in logical pixels exactly.
         // fixed 3840
     }
