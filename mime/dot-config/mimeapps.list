@@ -1,0 +1,20 @@
+
+[Default Applications]
+x-scheme-handler/http=vimb.desktop
+x-scheme-handler/https=vimb.desktop
+text/html=vimb.desktop
+application/xhtml+xml=vimb.desktop
+
+application/pdf=org.pwmt.zathura.desktop
+
+image/png=vimb.desktop
+image/jpeg=vimb.desktop
+image/gif=vimb.desktop
+image/webp=vimb.desktop
+image/svg+xml=vimb.desktop
+image/bmp=vimb.desktop
+image/x-bmp=vimb.desktop
+image/tiff=vimb.desktop
+image/heif=vimb.desktop
+image/heic=vimb.desktop
+image/jxl=vimb.desktop

@@ -1,0 +1,8 @@
+filenames:
+  dl:    { icon: { glyph: "󰉍" } }
+  docs:  { icon: { glyph: "󰲂" } }
+  pics:  { icon: { glyph: "󰉏" } }
+  music: { icon: { glyph: "󱍙" } }
+  vids:  { icon: { glyph: "\uF03D" } }
+  projects: { icon: { glyph: "\uF429" } }
+
