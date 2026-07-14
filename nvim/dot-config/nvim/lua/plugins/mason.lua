@@ -15,6 +15,7 @@ return {
         opts = {
             ensure_installed = {
                 "lua-language-server",
+                "markdown-oxide",
                 "tinymist",
             },
         },

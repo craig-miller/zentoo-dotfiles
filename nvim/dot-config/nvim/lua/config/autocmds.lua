@@ -169,10 +169,15 @@ vim.api.nvim_create_autocmd("LspAttach", {
     callback = function(event)
         -- We create a function that lets us more easily define mappings specific
         -- for LSP related items. It sets the mode, buffer and description for us each time.
+        -- wk.add pairing is required so <leader>* keys surface in the which-key popup.
+        local ok_wk, wk = pcall(require, "which-key")
         local map = function(keys, func, desc, mode)
             mode = mode or "n"
             -- vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = "LSP: " .. desc })
             vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = desc })
+            if ok_wk and keys:sub(1, 8) == "<leader>" then
+                wk.add({ keys, desc = desc, buffer = event.buf })
+            end
         end
 
         -- Rename the variable under your cursor.
@@ -286,16 +291,18 @@ vim.api.nvim_create_autocmd("LspAttach", {
     end,
 })
 
--- Directory-based Notes keybindings
--- Enable <leader>n keybindings when in ~/Notes directory
-local function is_notes_vault()
-    local cwd = vim.fn.getcwd()
-    -- Must be in ~/Notes directory (or subdirectory)
-    if not cwd:find(vim.fn.expand("~/Notes")) then
-        return false
-    end
-    -- Must have moxide settings configured (confirms markdown-oxide is set up)
+-- Buffer-scoped Notes keybindings
+-- Enable <leader>n* keys in buffers whose file lives under ~/notes.
+local function is_notes_setup()
+    -- Confirms markdown-oxide is configured.
     return vim.fn.filereadable(vim.fn.expand("~/.config/moxide/settings.toml")) == 1
+end
+
+local function is_notes_buffer()
+    local bufpath = vim.fn.expand("%:p")
+    if bufpath == "" then return false end
+    local notes_dir = vim.fn.expand("~/notes")
+    return bufpath:sub(1, #notes_dir) == notes_dir and is_notes_setup()
 end
 
 local function notes_backlinks()
@@ -390,46 +397,36 @@ local function notes_yesterday()
     vim.cmd('Daily yesterday')
 end
 
-vim.api.nvim_create_autocmd("DirChanged", {
+vim.api.nvim_create_autocmd("BufEnter", {
     group = vim.api.nvim_create_augroup("notes-keybindings", { clear = true }),
     callback = function()
-        -- Clear any existing notes keybindings
-        pcall(vim.keymap.del, 'n', '<leader>nb')
-        pcall(vim.keymap.del, 'n', '<leader>nt')
-        pcall(vim.keymap.del, 'n', '<leader>ny')
+        if not is_notes_buffer() then return end
 
-        -- Set notes keybindings if in Notes vault
-        if is_notes_vault() then
-            vim.keymap.set('n', '<leader>nb', notes_backlinks, {
-                desc = 'Show backlinks for current item (requires LSP)'
-            })
+        local map = function(lhs, rhs, desc)
+            vim.keymap.set('n', lhs, rhs, { buffer = 0, desc = desc })
+        end
+        map('<leader>nb', notes_backlinks, 'Show backlinks for current item (requires LSP)')
+        map('<leader>nt', notes_today,     "Open today's daily note")
+        map('<leader>ny', notes_yesterday, "Open yesterday's daily note")
 
-            vim.keymap.set('n', '<leader>nt', notes_today, {
-                desc = 'Open today\'s daily note'
-            })
-
-            vim.keymap.set('n', '<leader>ny', notes_yesterday, {
-                desc = 'Open yesterday\'s daily note'
+        local ok, wk = pcall(require, "which-key")
+        if ok then
+            wk.add({
+                { '<leader>nb', desc = 'Show backlinks for current item (requires LSP)', buffer = 0 },
+                { '<leader>nt', desc = "Open today's daily note",                        buffer = 0 },
+                { '<leader>ny', desc = "Open yesterday's daily note",                    buffer = 0 },
             })
         end
     end,
 })
 
--- Also set keybindings immediately if already in Notes vault on startup
-vim.api.nvim_create_autocmd("VimEnter", {
+-- Spellcheck for writing filetypes. Enables SpellBad highlighting and feeds
+-- blink-cmp-spell suggestions (see plugins/blink-cmp.lua sources.spell).
+vim.api.nvim_create_autocmd("FileType", {
+    group = vim.api.nvim_create_augroup("writing-spell", { clear = true }),
+    pattern = { "markdown", "typst", "gitcommit" },
     callback = function()
-        if is_notes_vault() then
-            vim.keymap.set('n', '<leader>nb', notes_backlinks, {
-                desc = 'Show backlinks for current item (requires LSP)'
-            })
-
-            vim.keymap.set('n', '<leader>nt', notes_today, {
-                desc = 'Open today\'s daily note'
-            })
-
-            vim.keymap.set('n', '<leader>ny', notes_yesterday, {
-                desc = 'Open yesterday\'s daily note'
-            })
-        end
+        vim.opt_local.spell = true
+        vim.opt_local.spelllang = "en_us"
     end,
 })

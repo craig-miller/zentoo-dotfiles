@@ -7,7 +7,7 @@ return {
         -- optional: provides snippets for the snippet source
         -- "rafamadriz/friendly-snippets",
         "nvim-lua/plenary.nvim",
-        -- "ribru17/blink-cmp-spell",
+        "ribru17/blink-cmp-spell",
         -- "MeanderingProgrammer/render-markdown.nvim",
     },
     init = function()
@@ -91,6 +91,10 @@ return {
                     module = "lazydev.integrations.blink",
                     -- make lazydev completions top priority (see `:h blink.cmp`)
                     score_offset = 100,
+                },
+                spell = {
+                    name = "Spell",
+                    module = "blink-cmp-spell",
                 },
                 git = {
                     module = "blink-cmp-git",
