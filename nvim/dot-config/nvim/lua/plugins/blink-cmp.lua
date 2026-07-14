@@ -80,12 +80,12 @@ return {
             -- default = { "lsp", "path", "snippets", "git", "spell" },
             -- default = { "lsp", "buffer", "snippets", "path", "git" },
             per_filetype = {
-                sql = { "snippets", "dadbod", "buffer" },
-                md = { "lsp", "path", "git", "spell" },
-                codecompanion = { "codecompanion" },
+                markdown = { "papis", "lsp", "path", "buffer", "git", "spell" },
+                typst    = { "papis", "lsp", "path", "buffer", "git" },
+                yaml     = { "papis", "lsp", "path", "buffer" },
             },
             providers = {
-                dadbod = { name = "Dadbod", module = "vim_dadbod_completion.blink" },
+                -- dadbod = { name = "Dadbod", module = "vim_dadbod_completion.blink" },
                 lazydev = {
                     name = "LazyDev",
                     module = "lazydev.integrations.blink",
