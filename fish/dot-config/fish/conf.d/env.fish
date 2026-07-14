@@ -14,3 +14,6 @@ set -gx MANPAGER "sh -c 'col -bx | bat -l man -p'"
 
 # gpg-agent — unified SSH+GPG agent (see ~/.gnupg/gpg-agent.conf)
 set -gx SSH_AUTH_SOCK (gpgconf --list-dirs agent-ssh-socket)
+
+# ~/.local/bin — user-scoped binaries (uv tool install, cargo install, etc.)
+fish_add_path -gaP ~/.local/bin
