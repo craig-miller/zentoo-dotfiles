@@ -1,0 +1,15 @@
+[settings]
+default-library = papers
+editor = nvim
+opentool = xdg-open
+
+picktool = fzf
+fzf-header-format = {doc[year]}§{doc[title]}§{doc[author]}§{doc[abstract]}§{c.Fore.GREEN}{doc[author]:<50.50}{c.Style.RESET_ALL}  {c.Fore.YELLOW}{doc[year]:<4}{c.Style.RESET_ALL}  {doc[title]}
+fzf-extra-flags = ['--ansi', '--multi', '-i', '--delimiter', '§', '--with-nth', '5', '--preview', '~/.config/papis/scripts/preview.sh {1} {2} {3} {4}', '--preview-window=up:60%%']
+
+notes-name = notes.md
+ref-format = {doc[author_list][0][family]}{doc[year]}
+add-folder-name = {doc[year]}-{doc[author_list][0][family]}-{doc[title]}
+
+[papers]
+dir = ~/docs/papers
