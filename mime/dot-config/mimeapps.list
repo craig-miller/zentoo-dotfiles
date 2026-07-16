@@ -7,14 +7,14 @@ application/xhtml+xml=vimb.desktop
 
 application/pdf=org.pwmt.zathura.desktop
 
-image/png=vimb.desktop
-image/jpeg=vimb.desktop
-image/gif=vimb.desktop
-image/webp=vimb.desktop
-image/svg+xml=vimb.desktop
-image/bmp=vimb.desktop
-image/x-bmp=vimb.desktop
-image/tiff=vimb.desktop
-image/heif=vimb.desktop
-image/heic=vimb.desktop
-image/jxl=vimb.desktop
+image/png=imv.desktop
+image/jpeg=imv.desktop
+image/gif=imv.desktop
+image/webp=imv.desktop
+image/svg+xml=imv.desktop
+image/bmp=imv.desktop
+image/x-bmp=imv.desktop
+image/tiff=imv.desktop
+image/heif=imv.desktop
+image/heic=imv.desktop
+image/jxl=imv.desktop
