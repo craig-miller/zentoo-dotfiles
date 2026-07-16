@@ -28,3 +28,19 @@ command = "noctalia:dpms-off"
 resume_command = "noctalia:dpms-on"
 enabled = true
 
+
+[shell.launcher.dmenu.entry.icontheme]
+command = "for d in $HOME/.local/share/icons/*/ /usr/share/icons/*/; do [ -f \"$d/index.theme\" ] && basename \"$d\"; done | sort -u"
+label = "Icon Theme"
+prefix = "/icon"
+glyph = "palette"
+global = true
+exec = "fish -c 'icontheme {selection}'"
+
+[shell.launcher.dmenu.entry.soundtheme]
+command = "printf 'Open\n'"
+label = "Sound Themes"
+prefix = "/sound"
+glyph = "volume"
+global = true
+exec = "soundthemed-config"
