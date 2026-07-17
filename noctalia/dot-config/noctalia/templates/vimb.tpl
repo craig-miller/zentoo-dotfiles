@@ -20,5 +20,5 @@ set completion-hover-css=background-color:{{colors.surface_container_high.defaul
 set completion-selected-css=background-color:{{colors.primary_container.default.hex}};color:{{colors.on_primary_container.default.hex}};
 
 set hint-label-css=background-color:{{colors.tertiary_container.default.hex}};border:1px solid {{colors.outline.default.hex}};color:{{colors.on_tertiary_container.default.hex}};opacity:0.95;
-set hint-link-css=background-color:{{colors.tertiary.default.hex}} !important;color:{{colors.on_tertiary.default.hex}} !important;
-set hint-focus-css=background-color:{{colors.primary.default.hex}} !important;color:{{colors.on_primary.default.hex}} !important;
+set hint-link-css=color:{{colors.tertiary.default.hex}} !important;
+set hint-focus-css=color:{{colors.primary.default.hex}} !important;
