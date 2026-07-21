@@ -1,0 +1,2 @@
+#!/bin/sh
+exec ~/.local/share/uv/tools/papis/bin/python ~/.config/papis/scripts/papis-fetch.py "$@"
