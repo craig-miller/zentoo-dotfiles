@@ -20,7 +20,7 @@ return {
             papis_python = {
                 dir = vim.fn.expand("~/research/papers"),
                 info_name = "info.yaml",
-                notes_name = "notes.md",
+                notes_name = "notes.typ",
             },
             cite_formats = {
                 typst = { start = "@", ["end"] = "", format = "%s" },
