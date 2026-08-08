@@ -14,7 +14,17 @@ import colorama
 import json, os, shutil, subprocess, sys, tempfile, threading, time, urllib.parse, urllib.request
 from urllib.error import HTTPError, URLError
 
-EMAIL = "redacted@example.invalid"
+def _pass(path):
+    """Read a value from `pass`; return "" if unavailable so callers degrade gracefully."""
+    try:
+        return subprocess.run(["pass", "show", path],
+                              capture_output=True, text=True, check=True).stdout.strip()
+    except Exception:
+        return ""
+
+
+# Polite-pool mailto for Unpaywall/OpenAlex, kept in pass so the public repo carries no address.
+EMAIL = _pass("api/openalex/email")
 UA = "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 papis-fetch/1.0"
 KAGI_LENS = os.environ.get("FETCH_LENS")  # e.g. "academic"; default None = plain search
 
@@ -29,8 +39,7 @@ def _get_json(url, headers=None, data=None, method="GET", timeout=40):
 
 
 def kagi_token():
-    return subprocess.run(["pass", "show", "api/kagi/token"],
-                          capture_output=True, text=True, check=True).stdout.strip()
+    return _pass("api/kagi/token")
 
 
 # ---------- discovery ----------
