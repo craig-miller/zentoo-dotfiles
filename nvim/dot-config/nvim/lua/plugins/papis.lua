@@ -18,7 +18,7 @@ return {
             ["formatter"] = { enable = true },
             ["base"] = { enable = true },
             papis_python = {
-                dir = vim.fn.expand("~/docs/papers"),
+                dir = vim.fn.expand("~/research/papers"),
                 info_name = "info.yaml",
                 notes_name = "notes.md",
             },
