@@ -10,7 +10,7 @@ fzf-extra-flags = ['--ansi', '--multi', '-i', '--delimiter', '§', '--with-nth',
 notes-name = notes.typ
 notes-template = ~/.config/papis/notes-template.typ
 ref-format = {doc[author_list][0][family]}{doc[year]}
-add-folder-name = {doc[year]}-{doc[author_list][0][family]}-{doc[title]}
+add-folder-name = {doc[ref]}
 
 [papers]
 dir = ~/research/papers
