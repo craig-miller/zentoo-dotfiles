@@ -11,13 +11,10 @@ vim.lsp.enable({
     "lua-language-server",
     "sourcekit-lsp",
     "tinymist",
+    "zeta",
     -- "bibli_ls"
 })
 
--- Load and apply markdown-oxide configuration
-local markdown_oxide_config = dofile(vim.fn.stdpath("config") .. "/lsp/markdown-oxide.lua")
-vim.lsp.config("markdown_oxide", markdown_oxide_config)
-vim.lsp.enable("markdown_oxide")
 
 vim.diagnostic.config({
     severity_sort = true,

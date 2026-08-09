@@ -43,7 +43,7 @@ vim.api.nvim_create_autocmd("BufWritePre", {
     end,
 })
 
--- Code Lens support for markdown-oxide reference counts
+-- Code Lens support (generic: refreshes for any LSP that provides codelens)
 local function check_codelens_support()
     local clients = vim.lsp.get_clients({ bufnr = 0 })
     for _, c in ipairs(clients) do
@@ -65,7 +65,6 @@ vim.api.nvim_create_autocmd({ 'TextChanged', 'InsertLeave', 'CursorHold', 'LspAt
 
 -- Trigger initial codelens refresh
 vim.api.nvim_exec_autocmds('User', { pattern = 'LspAttached' })
-
 
 -- vim.api.nvim_create_autocmd("BufWritePre", {
 --     group = vim.api.nvim_create_augroup("LspFormatting", {}),
@@ -287,135 +286,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
             map("<leader>th", function()
                 vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = event.buf }))
             end, "[T]oggle Inlay [H]ints")
-        end
-    end,
-})
-
--- Buffer-scoped Notes keybindings
--- Enable <leader>n* keys in buffers whose file lives under ~/notes.
-local function is_notes_setup()
-    -- Confirms markdown-oxide is configured.
-    return vim.fn.filereadable(vim.fn.expand("~/.config/moxide/settings.toml")) == 1
-end
-
-local function is_notes_buffer()
-    local bufpath = vim.fn.expand("%:p")
-    if bufpath == "" then return false end
-    local notes_dir = vim.fn.expand("~/notes")
-    return bufpath:sub(1, #notes_dir) == notes_dir and is_notes_setup()
-end
-
-local function notes_backlinks()
-    local clients = vim.lsp.get_clients({ name = 'markdown_oxide' })
-    if #clients > 0 then
-        -- Inline implementation of backlinks since the function is local in the LSP config
-        local params = vim.lsp.util.make_position_params()
-        params.context = { includeDeclaration = false }
-
-        vim.lsp.buf_request(0, 'textDocument/references', params, function(err, result)
-            if err then
-                vim.notify('Error getting references: ' .. err.message, vim.log.levels.ERROR)
-                return
-            end
-            if not result or vim.tbl_isempty(result) then
-                vim.notify('No references found', vim.log.levels.INFO)
-                return
-            end
-
-            -- Format results for fzf-lua
-            local entries = {}
-            for _, ref in ipairs(result) do
-                local uri = ref.uri
-                local range = ref.range
-                local filename = vim.uri_to_fname(uri)
-                local bufnr = vim.uri_to_bufnr(uri)
-                local line_content = vim.api.nvim_buf_get_lines(
-                    bufnr, range.start.line, range.start.line + 1, false
-                )[1] or ""
-
-                -- Create relative path for cleaner display
-                local rel_path = vim.fn.fnamemodify(filename, ':.')
-                if rel_path == filename then
-                    rel_path = vim.fn.fnamemodify(filename, ':t') -- fallback to just filename
-                end
-
-                table.insert(entries, {
-                    filename = filename,
-                    rel_path = rel_path,
-                    lnum = range.start.line + 1,
-                    col = range.start.character + 1,
-                    text = line_content:gsub("^%s*(.-)%s*$", "%1"), -- trim whitespace
-                    display = string.format("%s:%d: %s", rel_path, range.start.line + 1,
-                        line_content:gsub("^%s*(.-)%s*$", "%1")),
-                })
-            end
-
-            -- Sort by filename for better organization
-            table.sort(entries, function(a, b)
-                return a.rel_path < b.rel_path
-            end)
-
-            -- Create mapping from display strings to entries
-            local display_to_entry = {}
-            for _, entry in ipairs(entries) do
-                display_to_entry[entry.display] = entry
-            end
-
-            -- Display with fzf-lua
-            require('fzf-lua').fzf_exec(
-                vim.tbl_map(function(entry) return entry.display end, entries),
-                {
-                    prompt = 'Backlinks> ',
-                    actions = {
-                        ['default'] = function(selected)
-                            local display_str = selected[1]
-                            local entry = display_to_entry[display_str]
-                            if entry then
-                                vim.cmd('edit ' .. vim.fn.fnameescape(entry.filename))
-                                vim.api.nvim_win_set_cursor(0, { entry.lnum, entry.col - 1 })
-                            end
-                        end,
-                    },
-                    previewer = 'builtin',
-                    winopts = {
-                        height = 0.6,
-                        width = 0.8,
-                    },
-                }
-            )
-        end)
-    else
-        vim.notify('Backlinks require opening a markdown file first to load markdown-oxide LSP', vim.log.levels.INFO)
-    end
-end
-
-local function notes_today()
-    vim.cmd('Daily today')
-end
-
-local function notes_yesterday()
-    vim.cmd('Daily yesterday')
-end
-
-vim.api.nvim_create_autocmd("BufEnter", {
-    group = vim.api.nvim_create_augroup("notes-keybindings", { clear = true }),
-    callback = function()
-        if not is_notes_buffer() then return end
-
-        local map = function(lhs, rhs, desc)
-            vim.keymap.set('n', lhs, rhs, { buffer = 0, desc = desc })
-        end
-        map('<leader>nb', notes_backlinks, 'Show backlinks for current item (requires LSP)')
-        map('<leader>nt', notes_today,     "Open today's daily note")
-        map('<leader>ny', notes_yesterday, "Open yesterday's daily note")
-
-        local ok, wk = pcall(require, "which-key")
-        if ok then
-            wk.add({
-                { '<leader>nb', desc = 'Show backlinks for current item (requires LSP)', buffer = 0 },
-                { '<leader>nt', desc = "Open today's daily note",                        buffer = 0 },
-                { '<leader>ny', desc = "Open yesterday's daily note",                    buffer = 0 },
-            })
         end
     end,
 })

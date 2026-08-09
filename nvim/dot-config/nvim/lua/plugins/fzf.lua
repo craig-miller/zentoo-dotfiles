@@ -116,18 +116,6 @@ return {
             desc = "[F]ind [C]onfig",
         },
 
-        -- Find a note in my Notes directory
-        {
-            "<leader>fn",
-            function()
-                require("fzf-lua").files({
-                    cwd = "~/Notes",
-                    fd_opts = "--type f --exclude '.*'",
-                })
-            end,
-            desc = "[F]ind [N]ote",
-        },
-
         {
             "<leader>fb",
             function()
