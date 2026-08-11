@@ -37,10 +37,3 @@ glyph = "palette"
 global = true
 exec = "fish -c 'icontheme {selection}'"
 
-[shell.launcher.dmenu.entry.soundtheme]
-command = "printf 'Open\n'"
-label = "Sound Themes"
-prefix = "/sound"
-glyph = "volume"
-global = true
-exec = "soundthemed-config"
