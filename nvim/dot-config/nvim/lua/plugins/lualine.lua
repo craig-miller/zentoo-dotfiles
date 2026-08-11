@@ -42,7 +42,7 @@ return {
         { "nvim-tree/nvim-web-devicons" },
     },
     options = {
-        theme = "catpuccin",
+        theme = "catppuccin",
     },
     config = function()
         local transparent_groups = {
