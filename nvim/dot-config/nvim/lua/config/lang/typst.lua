@@ -11,7 +11,7 @@
 --   - <leader>sp -> :CalepinPublish (build + POST to Netlify via netlify-publish)
 --   - <leader>sb -> :CalepinBuild   (build dist/ only; errors -> quickfix)
 --   - <leader>sc -> :CalepinClean   (remove all .calepin/ directories, -y)
--- VimLeavePre autocmd stops any surviving calepin watch + zathura jobs.
+-- VimLeavePre autocmd stops any surviving calepin watch + sioyek jobs.
 
 local function calepin_detect()
     local buf = vim.fn.expand("%:p")
@@ -33,16 +33,16 @@ local function calepin_detect()
 end
 
 local calepin_watch_job = nil
-local zathura_job = nil
+local sioyek_job = nil
 
 local function calepin_preview_stop()
     if calepin_watch_job then
         pcall(vim.fn.jobstop, calepin_watch_job)
         calepin_watch_job = nil
     end
-    if zathura_job then
-        pcall(vim.fn.jobstop, zathura_job)
-        zathura_job = nil
+    if sioyek_job then
+        pcall(vim.fn.jobstop, sioyek_job)
+        sioyek_job = nil
     end
 end
 
@@ -65,7 +65,7 @@ local function calepin_preview_toggle()
             { "calepin", "watch", buf, "--format", "pdf" }
         )
         local pdf = buf:gsub("%.typ$", ".pdf")
-        zathura_job = vim.fn.jobstart({ "zathura", pdf })
+        sioyek_job = vim.fn.jobstart({ "sioyek", pdf })
     end
 end
 

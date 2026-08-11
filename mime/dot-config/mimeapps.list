@@ -5,7 +5,7 @@ x-scheme-handler/https=vimb.desktop
 text/html=vimb.desktop
 application/xhtml+xml=vimb.desktop
 
-application/pdf=org.pwmt.zathura.desktop
+application/pdf=sioyek.desktop
 
 image/png=imv.desktop
 image/jpeg=imv.desktop
