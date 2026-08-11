@@ -1,0 +1,13 @@
+# Noctalia user-template registration for neovim.
+#
+# On every palette change (wallpaper regeneration, dark/light flip,
+# palette re-selection), noctalia renders templates/nvim/nvim-palette.lua
+# with the active color roles substituted, writes the result to
+# output_path, then runs post_hook.  colorscheme.lua's SIGUSR1 handler
+# re-reads the output and re-applies :colorscheme catppuccin-mocha with
+# the new palette flowing through color_overrides.mocha.
+
+[theme.templates.user.nvim]
+input_path  = "~/.config/noctalia/templates/nvim/nvim-palette.lua"
+output_path = "~/.cache/noctalia/nvim-palette.lua"
+post_hook   = "bash ~/.config/noctalia/templates/nvim/apply.sh"

@@ -1,80 +1,65 @@
--- Colorschemes + color-related plugins, in one file.
+-- Catppuccin with palette overrides driven by noctalia.
 --
---   catppuccin        — primary theme (mocha), sets :colorscheme on load.
---   base16-nvim       — fallback for tinty schemes without dedicated plugins;
---                       driven by `:colorscheme base16-<slug>` from the
---                       external switcher (~/.config/tinted-theming/extras/
---                       nvim-rpc.sh via the per-PID socket in init.lua).
---   nvim-highlight-colors — inline #RRGGBB / rgb() / hsl() previews.
+-- Noctalia renders ~/.cache/noctalia/nvim-palette.lua on every wallpaper
+-- change (M3 tonal-spot -> catppuccin-named palette table), then the
+-- template post_hook fires SIGUSR1 -x nvim.  The handler here re-reads
+-- that table via loadfile (no require cache), feeds it to
+-- catppuccin.color_overrides.mocha, and re-applies the colorscheme.
 --
--- Cross-plugin highlight overrides that need to survive theme swaps belong
--- in a ColorScheme autocmd, not scattered across plugin configs. (Not yet
--- migrated here — hydra.lua and matugen.lua still set their own hi groups.)
+-- First boot before noctalia has rendered: falls back to stock mocha.
+
+local function load_palette()
+    local chunk = loadfile(vim.fn.expand("~/.cache/noctalia/nvim-palette.lua"))
+    return chunk and chunk() or nil
+end
+
+local function apply()
+    local palette = load_palette()
+    require("catppuccin").setup({
+        flavour = "mocha",
+        background = { light = "latte", dark = "mocha" },
+        transparent_background = true,
+        show_end_of_buffer = false,
+        term_colors = false,
+        dim_inactive = { enabled = false },
+        styles = {
+            conditionals = { "italic" },
+        },
+        color_overrides = palette and { mocha = palette } or {},
+        integrations = {
+            blink_cmp = true,
+            cmp = true,
+            gitsigns = true,
+            nvimtree = true,
+            treesitter = true,
+            notify = true,
+            fzf = true,
+            mini = { enabled = true, indentscope_color = "" },
+            lualine = true,
+            mason = true,
+            neotest = true,
+            dap = true,
+            dap_ui = true,
+        },
+    })
+    vim.cmd.colorscheme("catppuccin-mocha")
+end
 
 return {
     {
         "catppuccin/nvim",
         name = "catppuccin",
         priority = 1000,
-        opts = {
-            flavour = "mocha",
-            background = { light = "latte", dark = "mocha" },
-            transparent_background = true,
-            show_end_of_buffer = false,
-            term_colors = false,
-            dim_inactive = { enabled = false, shade = "dark", percentage = 0.15 },
-            no_italic = false,
-            no_bold = false,
-            no_underline = false,
-            styles = {
-                conditionals = { "italic" },
-                loops = {},
-                functions = {},
-                keywords = {},
-                strings = {},
-                variables = {},
-                numbers = {},
-                booleans = {},
-                properties = {},
-                types = {},
-                operators = {},
-            },
-            color_overrides = {},
-            custom_highlights = {},
-            default_integrations = true,
-            integrations = {
-                blink_cmp = true,
-                cmp = true,
-                gitsigns = true,
-                nvimtree = true,
-                treesitter = true,
-                notify = true,
-                fzf = true,
-                mini = { enabled = true, indentscope_color = "" },
-                lualine = true,
-                mason = true,
-                neotest = true,
-                dap = true,
-                dap_ui = true,
-            },
-        },
-        config = function(_, opts)
-            require("catppuccin").setup(opts)
-            vim.cmd.colorscheme("catppuccin-mocha")
+        lazy = false,
+        config = function()
+            apply()
+            local signal = vim.uv.new_signal()
+            signal:start("sigusr1", vim.schedule_wrap(apply))
         end,
     },
 
-    -- Fallback for tinty schemes without a dedicated plugin (e.g. Twilight).
-    -- RRethy/base16-nvim reads the active scheme via base16-vim's API; the
-    -- external switcher drives it with `:colorscheme base16-<slug>`.
-    {
-        "RRethy/base16-nvim",
-        lazy = true,
-        priority = 1000,
-    },
-
     -- Inline color previews for #RRGGBB, rgb(), hsl(), ansi, CSS vars,
-    -- named colors. Not tied to the active colorscheme.
+    -- named colors.  Not tied to the active colorscheme.
     {
         "brenoprata10/nvim-highlight-colors",
         opts = {

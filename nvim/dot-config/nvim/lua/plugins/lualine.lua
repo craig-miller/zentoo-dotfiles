@@ -16,10 +16,10 @@ end
 
 local function xcodebuild_device()
     if vim.g.xcodebuild_platform == "macOS" then
-        return " macOS"
+        return " macOS"
     end
 
-    local deviceIcon = ""
+    local deviceIcon = ""
     if vim.g.xcodebuild_platform:match("watch") then
         deviceIcon = "􀟤"
     elseif vim.g.xcodebuild_platform:match("tv") then
@@ -45,6 +45,8 @@ return {
         theme = "catppuccin",
     },
     config = function()
+        local palette = require("catppuccin.palettes").get_palette()
+
         local transparent_groups = {
             "lualine_c_normal", "lualine_c_insert", "lualine_c_visual",
             "lualine_c_replace", "lualine_c_command", "lualine_c_terminal",
@@ -76,10 +78,10 @@ return {
             options = {
                 theme = "auto",
                 component_separators = "",
-                section_separators = { left = "", right = "" },
+                section_separators = { left = "", right = "" },
             },
             sections = {
-                lualine_a = { { "mode", separator = { left = "" }, right_padding = 2 } },
+                lualine_a = { { "mode", separator = { left = "" }, right_padding = 2 } },
                 -- lualine_b = { "filename", "branch" },
                 lualine_b = { "filename", "branch" },
                 lualine_c = {
@@ -93,25 +95,25 @@ return {
                 -- lualine_y = { "filetype", "progress", "require'lsp-status'.status()" },
                 lualine_y = {
                     {
-                        "' ' .. vim.g.xcodebuild_last_status",
+                        "' ' .. vim.g.xcodebuild_last_status",
                         color = { fg = "Gray" },
                         cond = xcodebuild_has_status,
                     },
                     {
                         "'󰙨 ' .. vim.g.xcodebuild_test_plan",
-                        color = { fg = "#a6e3a1" },
+                        color = { fg = palette.green },
                         cond = xcodebuild_has_test_plan,
                     },
                     {
                         xcodebuild_device,
-                        color = { fg = "#f9e2af" },
+                        color = { fg = palette.yellow },
                         cond = xcodebuild_has_device,
                     },
                     "filetype",
                     "lsp-status",
                 },
                 lualine_z = {
-                    { "location", separator = { right = "" }, left_padding = 2 },
+                    { "location", separator = { right = "" }, left_padding = 2 },
                 },
             },
             inactive_sections = {
