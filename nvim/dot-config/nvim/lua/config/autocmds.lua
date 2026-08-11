@@ -43,28 +43,17 @@ vim.api.nvim_create_autocmd("BufWritePre", {
     end,
 })
 
--- Code Lens support (generic: refreshes for any LSP that provides codelens)
-local function check_codelens_support()
-    local clients = vim.lsp.get_clients({ bufnr = 0 })
-    for _, c in ipairs(clients) do
-        if c.server_capabilities.codeLensProvider then
-            return true
-        end
-    end
-    return false
-end
-
-vim.api.nvim_create_autocmd({ 'TextChanged', 'InsertLeave', 'CursorHold', 'LspAttach', 'BufEnter' }, {
+-- Code Lens: nvim 0.12+ manages auto-refresh once enabled per buffer;
+-- enable when a codelens-capable client attaches.
+vim.api.nvim_create_autocmd("LspAttach", {
     group = vim.api.nvim_create_augroup("lsp-codelens", { clear = true }),
-    callback = function()
-        if check_codelens_support() then
-            vim.lsp.codelens.refresh({ bufnr = 0 })
+    callback = function(args)
+        local client = vim.lsp.get_client_by_id(args.data.client_id)
+        if client and client:supports_method("textDocument/codeLens") then
+            vim.lsp.codelens.enable(true, { bufnr = args.buf })
         end
     end,
 })
-
--- Trigger initial codelens refresh
-vim.api.nvim_exec_autocmds('User', { pattern = 'LspAttached' })
 
 -- vim.api.nvim_create_autocmd("BufWritePre", {
 --     group = vim.api.nvim_create_augroup("LspFormatting", {}),
