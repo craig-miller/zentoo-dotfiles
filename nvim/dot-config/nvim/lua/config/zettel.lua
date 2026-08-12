@@ -66,13 +66,16 @@ end
 
 -- Custom telescope picker over a flat list of {text, ...} entries; on_select
 -- receives the picked entry table. Factored out because pick_paper, pick_card,
--- and find_note all share this shape.
+-- and find_note all share this shape. When items carry a .path field, a file
+-- previewer is attached (renders the .typ with TS highlighting via the shim
+-- in plugins/telescope.lua).
 local function tel_picker(title, items, on_select)
     local pickers = require("telescope.pickers")
     local finders = require("telescope.finders")
     local conf = require("telescope.config").values
     local actions = require("telescope.actions")
     local action_state = require("telescope.actions.state")
+    local has_paths = items[1] and items[1].path ~= nil
     pickers.new({}, {
         prompt_title = title,
         finder = finders.new_table({
@@ -82,10 +85,12 @@ local function tel_picker(title, items, on_select)
                     value = item,
                     display = item.text,
                     ordinal = item.text,
+                    path = item.path,
                 }
             end,
         }),
         sorter = conf.generic_sorter({}),
+        previewer = has_paths and conf.file_previewer({}) or nil,
         attach_mappings = function(prompt_bufnr, _map)
             actions.select_default:replace(function()
                 actions.close(prompt_bufnr)
@@ -124,11 +129,13 @@ local function pick_card(prompt, cb)
     for name, typ in vim.fs.dir(NOTES) do
         if typ == "file" and name:match("%.typ$") then
             local base = name:gsub("%.typ$", "")
-            local title = read_title(NOTES .. "/" .. name) or base
+            local path = NOTES .. "/" .. name
+            local title = read_title(path) or base
             table.insert(items, {
                 text = title .. "  ::  " .. base,
                 name = base,
                 title = title,
+                path = path,
             })
         end
     end
@@ -177,8 +184,17 @@ end
 M._vault_items = vault_items
 
 -- templates: new cards are born <Fleeting>; flip to <Idea> once processed.
+-- Two-line preamble opts the card into the shared vault template
+-- (~/research/templates/note.typ) so bibliography + any future styling is
+-- inherited automatically.
+local PREAMBLE = {
+    '#import "/templates/note.typ": note-template',
+    "#show: note-template",
+    "",
+}
+
 local function grounded_lines(title, ref)
-    return {
+    local body = {
         "= " .. title .. " <Fleeting>",
         "",
         "// paste the quote / fleeting thought, then rewrite it below",
@@ -191,11 +207,12 @@ local function grounded_lines(title, ref)
         "== Links",
         "",
     }
+    return vim.list_extend(vim.list_extend({}, PREAMBLE), body)
 end
 M._grounded_lines = grounded_lines
 
 local function ungrounded_lines(title)
-    return {
+    local body = {
         "= " .. title .. " <Fleeting>",
         "",
         "== In my own words",
@@ -203,6 +220,7 @@ local function ungrounded_lines(title)
         "== Links",
         "",
     }
+    return vim.list_extend(vim.list_extend({}, PREAMBLE), body)
 end
 
 function M.new_grounded()
@@ -210,7 +228,7 @@ function M.new_grounded()
         vim.ui.input({ prompt = "Card title: " }, function(title)
             if not title or title == "" then return end
             local path = unique_path(NOTES, ref .. "-" .. slugify(title))
-            open_at(path, grounded_lines(title, ref), 6) -- empty line under "In my own words"
+            open_at(path, grounded_lines(title, ref), 9) -- empty line under "In my own words" (3-line preamble + orig 6)
         end)
     end)
 end
@@ -219,7 +237,7 @@ function M.new_ungrounded()
     vim.ui.input({ prompt = "Card title: " }, function(title)
         if not title or title == "" then return end
         local path = unique_path(NOTES, slugify(title))
-        open_at(path, ungrounded_lines(title), 4)
+        open_at(path, ungrounded_lines(title), 7) -- 3-line preamble + orig 4
     end)
 end
 

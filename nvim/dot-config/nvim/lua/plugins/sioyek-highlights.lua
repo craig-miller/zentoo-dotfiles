@@ -16,9 +16,28 @@ return {
         { "<leader>sj", "<cmd>SioyekJump<cr>",       desc = "Sioyek jump to highlight" },
     },
     opts = {
-        db_path = "~/.local/share/sioyek/shared.db",
+        -- format_function must return a table of strings (each element = one
+        -- line — the plugin passes it straight to nvim_buf_set_text). PDFs
+        -- often hard-wrap mid-sentence, so collapse whitespace to a single
+        -- flowing line before wrapping in Typst's #quote[].
+        --
+        -- Attribution: the plugin only hands us `text`, not the source paper's
+        -- citekey. Derive it from the buffer path — papis lays out both
+        --   ~/research/papers/<ref>/notes.typ  (paper reviews)
+        --   ~/research/notes/<ref>-<slug>.typ  (grounded cards)
+        -- with the citekey encoded. Fall back to a bare #quote when no ref
+        -- can be inferred (buffer somewhere else in the vault).
         format_function = function(text)
-            return "#quote[" .. text .. "]"
+            local flat = text:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
+            local bufname = vim.api.nvim_buf_get_name(0)
+            local ref = bufname:match("/research/papers/([^/]+)/notes%.typ$")
+                     or bufname:match("/research/notes/([^-/]+)%-")
+            -- block: true + quotes: true come from `#set quote(...)` in
+            -- ~/research/templates/note.typ, so we emit bare #quote() here.
+            if ref then
+                return { "#quote(attribution: [@" .. ref .. "])[" .. flat .. "]" }
+            end
+            return { "#quote[" .. flat .. "]" }
         end,
     },
     config = function(_, opts)

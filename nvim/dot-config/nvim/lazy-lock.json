@@ -9,7 +9,7 @@
   "gitsigns.nvim": { "branch": "main", "commit": "5be654f2232c10ddcad19c1607a67b6b4b78fc29" },
   "hererocks": { "branch": "master", "commit": "204ab1ff8b68cb7db7c9bafb4be2abf7d22f864e" },
   "hydra.nvim": { "branch": "main", "commit": "8c4a9f621ec7cdc30411a1f3b6d5eebb12b469dc" },
-  "lazy.nvim": { "branch": "main", "commit": "306a05526ada86a7b30af95c5cc81ffba93fef97" },
+  "lazy.nvim": { "branch": "main", "commit": "85c7ff3711b730b4030d03144f6db6375044ae82" },
   "lazydev.nvim": { "branch": "main", "commit": "ff2cbcba459b637ec3fd165a2be59b7bbaeedf0d" },
   "lualine-lsp-status": { "branch": "main", "commit": "1218d51d4d0b8881a598a77e5d9f334ac31c6cc7" },
   "lualine-macro-recording.nvim": { "branch": "main", "commit": "e2dcf63ba74e6111b53e1520a4f8a17a3d7427a1" },

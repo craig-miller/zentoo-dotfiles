@@ -185,7 +185,7 @@ return {
         },
         { "<leader>/",  ":normal gcc<CR><DOWN>", desc = "[/] Comment line",        mode = { "n" } },
         { "<Esc>",      "<cmd>nohlsearch<CR>",   desc = "Clear search highlights", mode = { "n" } },
-        { "<leader>tm", "<cmd>Noice fzf<cr>",    desc = "Messages",                mode = { "n", "v" } },
+        { "<leader>tm", "<cmd>Noice telescope<cr>",    desc = "Messages",                mode = { "n", "v" } },
         { "<leader>q",  ":qa<CR>",               desc = "Quit",                    mode = { "n" } },
 
         -- Buffer navigation with Tab / Shift-Tab (saves first if the current

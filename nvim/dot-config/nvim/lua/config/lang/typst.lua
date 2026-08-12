@@ -96,7 +96,7 @@ local function calepin_build()
     if #errors > 0 then
         vim.cmd("copen")
         vim.notify("Website Build: errors in quickfix", vim.log.levels.ERROR)
-        vim.cmd("Noice fzf")
+        vim.cmd("Noice telescope")
     else
         vim.notify("Website Build: done", vim.log.levels.INFO)
     end
@@ -149,7 +149,7 @@ local function calepin_publish()
                             .. table.concat(output, "\n"),
                         vim.log.levels.ERROR
                     )
-                    vim.cmd("Noice fzf")
+                    vim.cmd("Noice telescope")
                 end
             end)
         end,
