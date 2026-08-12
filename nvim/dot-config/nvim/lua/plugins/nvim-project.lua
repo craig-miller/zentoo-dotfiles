@@ -16,7 +16,7 @@ return {
             "~/.config/*",
         },
         picker = {
-            type = "fzf-lua",        -- one of "telescope", "fzf-lua", or "snacks"
+            type = "telescope",      -- one of "telescope", "fzf-lua", or "snacks"
             preview = {
                 enabled = false,     -- show directory structure in Telescope preview
                 git_status = true,   -- show branch name, an ahead/behind counter, and the git status of each file/folder
@@ -26,7 +26,6 @@ return {
             opts = {
                 -- picker-specific options
             },
-            -- fzf_colors = true,
         },
         cd_type = "global",
         last_session_on_startup = false,
@@ -38,16 +37,11 @@ return {
     end,
     dependencies = {
         { "nvim-lua/plenary.nvim" },
-        -- optional picker
-        -- { "nvim-telescope/telescope.nvim", tag = "0.1.4" },
-        -- optional picker
-        { "ibhagwan/fzf-lua" },
-        -- optional picker
-        -- { "folke/snacks.nvim" },
+        { "nvim-telescope/telescope.nvim" },
         { "Shatur/neovim-session-manager" },
     },
     keys = {
-        -- Project Management Use Ctrl+d in fzf-lua to delete project session from history
+        -- Project Management: Ctrl+d in the picker deletes project session history.
         { "<leader>fp", "<CMD>NeovimProjectDiscover<CR>", desc = "Project", mode = { "n" } },
         -- { "<leader>fpr", "<CMD>NeovimProjectHistory<CR>",    desc = "Recent",       mode = { "n" } },
         -- { "<leader>fpl", "<CMD>NeovimProjectLoadRecent<CR>", desc = "Last Session", mode = { "n" } },

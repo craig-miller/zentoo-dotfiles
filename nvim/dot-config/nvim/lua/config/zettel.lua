@@ -64,6 +64,39 @@ local function put(text)
     vim.api.nvim_put({ text }, "c", true, true)
 end
 
+-- Custom telescope picker over a flat list of {text, ...} entries; on_select
+-- receives the picked entry table. Factored out because pick_paper, pick_card,
+-- and find_note all share this shape.
+local function tel_picker(title, items, on_select)
+    local pickers = require("telescope.pickers")
+    local finders = require("telescope.finders")
+    local conf = require("telescope.config").values
+    local actions = require("telescope.actions")
+    local action_state = require("telescope.actions.state")
+    pickers.new({}, {
+        prompt_title = title,
+        finder = finders.new_table({
+            results = items,
+            entry_maker = function(item)
+                return {
+                    value = item,
+                    display = item.text,
+                    ordinal = item.text,
+                }
+            end,
+        }),
+        sorter = conf.generic_sorter({}),
+        attach_mappings = function(prompt_bufnr, _map)
+            actions.select_default:replace(function()
+                actions.close(prompt_bufnr)
+                local entry = action_state.get_selected_entry()
+                if entry and entry.value then on_select(entry.value) end
+            end)
+            return true
+        end,
+    }):find()
+end
+
 -- pick a paper from the papis library; cb(ref) with the chosen citekey.
 -- systemlist with a list arg execs papis directly (no shell) — dodges fish quoting.
 local function pick_paper(prompt, cb)
@@ -73,44 +106,38 @@ local function pick_paper(prompt, cb)
         vim.notify("papis list returned nothing", vim.log.levels.ERROR)
         return
     end
-    lines = vim.tbl_filter(function(l) return l ~= "" end, lines)
-    require("fzf-lua").fzf_exec(lines, {
-        prompt = prompt,
-        actions = {
-            ["default"] = function(sel)
-                local ref = sel and sel[1] and sel[1]:match("^(%S+)")
-                if ref then cb(ref) end
-            end,
-        },
-    })
+    local items = {}
+    for _, line in ipairs(lines) do
+        if line ~= "" then
+            local ref = line:match("^(%S+)")
+            if ref then
+                table.insert(items, { text = line, ref = ref })
+            end
+        end
+    end
+    tel_picker(prompt, items, function(item) cb(item.ref) end)
 end
 
 -- pick an existing card in ~/research/notes; cb(name, title).
 local function pick_card(prompt, cb)
-    local entries, meta = {}, {}
+    local items = {}
     for name, typ in vim.fs.dir(NOTES) do
         if typ == "file" and name:match("%.typ$") then
             local base = name:gsub("%.typ$", "")
             local title = read_title(NOTES .. "/" .. name) or base
-            local display = title .. "  ::  " .. base
-            entries[#entries + 1] = display
-            meta[display] = { name = base, title = title }
+            table.insert(items, {
+                text = title .. "  ::  " .. base,
+                name = base,
+                title = title,
+            })
         end
     end
-    table.sort(entries)
-    if #entries == 0 then
+    if #items == 0 then
         vim.notify("no cards in " .. NOTES .. " yet", vim.log.levels.WARN)
         return
     end
-    require("fzf-lua").fzf_exec(entries, {
-        prompt = prompt,
-        actions = {
-            ["default"] = function(sel)
-                local m = sel and sel[1] and meta[sel[1]]
-                if m then cb(m.name, m.title) end
-            end,
-        },
-    })
+    table.sort(items, function(a, b) return a.text < b.text end)
+    tel_picker(prompt, items, function(item) cb(item.name, item.title) end)
 end
 
 -- every note in the vault: idea cards (notes/*.typ) + paper reviews (papers/<ref>/notes.typ).
@@ -135,21 +162,19 @@ local function iter_vault_notes(cb)
     end
 end
 
--- build the fzf display list once; returns entries + display->path map
-local function vault_entries()
-    local entries, meta = {}, {}
+-- build the picker item list once; returns list of {text, path, kind, ref}
+local function vault_items()
+    local items = {}
     iter_vault_notes(function(path, title, kind, ref)
-        local display = (kind == "paper")
+        local text = (kind == "paper")
             and (BOOK .. "  " .. title .. "  (" .. ref .. ")")
             or (CARD .. "  " .. title)
-        while meta[display] do display = display .. " " end -- keep keys unique
-        entries[#entries + 1] = display
-        meta[display] = path
+        table.insert(items, { text = text, path = path, kind = kind, ref = ref })
     end)
-    table.sort(entries)
-    return entries, meta
+    table.sort(items, function(a, b) return a.text < b.text end)
+    return items
 end
-M._vault_entries = function() return (vault_entries()) end
+M._vault_items = vault_items
 
 -- templates: new cards are born <Fleeting>; flip to <Idea> once processed.
 local function grounded_lines(title, ref)
@@ -212,20 +237,14 @@ end
 
 -- find & open any note in the vault (cards + paper reviews), cwd-independent
 function M.find_note()
-    local entries, meta = vault_entries()
-    if #entries == 0 then
+    local items = vault_items()
+    if #items == 0 then
         vim.notify("no notes in the vault yet", vim.log.levels.WARN)
         return
     end
-    require("fzf-lua").fzf_exec(entries, {
-        prompt = "Find note> ",
-        actions = {
-            ["default"] = function(sel)
-                local p = sel and sel[1] and meta[sel[1]]
-                if p then vim.cmd.edit(p) end
-            end,
-        },
-    })
+    tel_picker("Find note> ", items, function(item)
+        if item.path then vim.cmd.edit(item.path) end
+    end)
 end
 
 -- Follow the #link on the current line from ANY column (zeta only resolves gd
@@ -243,7 +262,7 @@ function M.follow_link()
         init = e + 1
     end
     if not best then
-        require("fzf-lua").lsp_definitions() -- no link here: normal gd
+        require("telescope.builtin").lsp_definitions() -- no link here: normal gd
         return
     end
     local path = best:match("%.%w+$") and best or (best .. ".typ")

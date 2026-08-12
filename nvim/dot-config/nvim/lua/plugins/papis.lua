@@ -5,14 +5,11 @@ return {
         "saghen/blink.cmp",
         "kkharji/sqlite.lua",
         "MunifTanjim/nui.nvim",
-        {
-            "folke/snacks.nvim",
-            opts = { picker = { enabled = true } },
-        },
+        "nvim-telescope/telescope.nvim",
     },
     config = function()
         require("papis").setup({
-            ["search"] = { enable = true },
+            ["search"] = { enable = true, provider = "telescope" },
             ["completion"] = { enable = true },
             ["at-cursor"] = { enable = true },
             ["formatter"] = { enable = true },

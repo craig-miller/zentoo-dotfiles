@@ -81,7 +81,7 @@ return {
                 mode = { "n" },
             },
 
-            -- Find -- Mostly defined in fzf-lua plugin
+            -- Find -- Mostly defined in telescope.lua plugin
             -- TODO: Move FZF-LUA keymaps here
             { "<leader>f", group = "Find",   mode = { "n" } },
 
