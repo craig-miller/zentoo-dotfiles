@@ -1,3 +1,6 @@
+#import "/templates/note.typ": note-template
+#show: note-template
+
 = {doc[title]} <{doc[ref]}-note>
 
 #table(
@@ -42,5 +45,3 @@
 == Limits
 
 == Links
-
-#bibliography("/bib.yml")
