@@ -1,7 +1,7 @@
-#import "/templates/note.typ": note-template
+#import "/templates/note.typ": note-template, show-associated-cards
 #show: note-template
 
-= {doc[title]} <{doc[ref]}-note>
+= {doc[ref]} - (Notes) {doc[title]} <{doc[ref]}-notes>
 
 #table(
   columns: (auto, 1fr),
@@ -30,6 +30,10 @@
   [*Added*], [{doc[time-added]}],
 )
 
+== Cards
+
+#show-associated-cards(read("_cards.txt"))
+
 == Intentions
 
 === What is this paper's one claim?
@@ -45,3 +49,4 @@
 == Limits
 
 == Links
+
