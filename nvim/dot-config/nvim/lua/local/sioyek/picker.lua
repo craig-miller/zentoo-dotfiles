@@ -76,31 +76,32 @@ end
 local function insertion_lines(entry)
     -- Layout separates concerns so the user can copy the quote (with its
     -- plain @ref attribution) cleanly into external writing without a
-    -- machine-local file:// link tagging along:
+    -- machine-local URL tagging along:
     --
     --   <note (if present)>
     --
     --   #quote(attribution: [@Cite[p. N]])[text]
-    --   // sioyek:{uuid}                    <- machine marker for <leader>pj
-    --   #link("file://…pdf#page=N+1")[source]  <- reader helper, opens sioyek
+    --   // sioyek:{uuid}                         <- machine marker for <leader>pj
+    --   #link("sioyek:///abs/pdf?page=N")[source]  <- reader helper
     --
-    -- The source-link URL uses page+1 because sioyek's --page is off-by-one
-    -- (arg N -> shows display page N-1); xdg-open on zentoo routes
-    -- file://…#page=N to `sioyek --page N`.
+    -- Source link uses the sioyek:// URL scheme, routed by xdg via
+    -- ~/.local/bin/sioyek-proto (registered as x-scheme-handler/sioyek).
+    -- The proxy translates URL page N -> sioyek --page N+1 to compensate
+    -- for sioyek's --page off-by-one, so callers pass display page here.
+    -- Absolute path in the URL means the link resolves anywhere the card
+    -- is inserted (no dependency on colocation with notes.pdf like the
+    -- previous file://basename form).
     local quote = string.format(
         "#quote(attribution: [@%s[p. %d]])[%s]",
         entry.citekey, entry.page, entry.text
     )
-    -- Sioyek's file:// link handler resolves the path relative to the
-    -- CURRENT doc's folder via `Path(doc).file_parent().slash(path)` — its
-    -- concatenate_path is dumb about absolute paths ("parent" + "/abs" =
-    -- "parent//abs"). Since our source PDF and the notes hub live in the
-    -- same paper folder, the basename resolves correctly relative to
-    -- notes.pdf's location. Fallback for cards inserted elsewhere: caller
-    -- needs to be in a matching folder, or the link will 404.
+    -- yloc carries the highlight's absolute document-Y so the proxy's
+    -- step-2 goto_highlight IPC centers the view on the exact quote,
+    -- not just the page (matches the two-step precision <leader>pj gets
+    -- via direct sioyek IPC calls).
     local source_link = string.format(
-        '#link("file://%s#page=%d")[source]',
-        entry.pdf_name, entry.page + 1
+        '#link("sioyek://%s?page=%d&yloc=%s")[source]',
+        entry.pdf_path, entry.page, tostring(entry.begin_y)
     )
 
     local lines = {}
