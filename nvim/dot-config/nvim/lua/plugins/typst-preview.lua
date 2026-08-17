@@ -10,8 +10,10 @@ return {
             tinymist = "tinymist",
             websocat = "websocat",
         },
-        -- Open the preview in vimb (zentoo's browser).
-        open_cmd = "vimb %s",
+        -- Open the preview in vimb. Query-param marker lets a vimb
+        -- LoadFinished autocmd auto-engage passthrough on preview pages
+        -- (dark-mode toggle + typst-preview's JS keybinds are inside the page).
+        open_cmd = "vimb %s?zentoo-typst-preview=1",
     },
     config = function(_, opts)
         require("typst-preview").setup(opts)
