@@ -188,7 +188,7 @@ M._vault_items = vault_items
 -- (~/research/templates/note.typ) so bibliography + any future styling is
 -- inherited automatically.
 local PREAMBLE = {
-    '#import "/templates/note.typ": note-template',
+    '#import "/templates/note.typ": back-link, highlight-box, note-template, source-link',
     "#show: note-template",
     "",
 }

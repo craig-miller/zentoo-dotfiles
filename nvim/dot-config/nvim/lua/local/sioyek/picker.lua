@@ -100,7 +100,7 @@ local function insertion_lines(entry)
     -- not just the page (matches the two-step precision <leader>pj gets
     -- via direct sioyek IPC calls).
     local source_link = string.format(
-        '#link("sioyek://%s?page=%d&yloc=%s")[source]',
+        '#source-link("sioyek://%s?page=%d&yloc=%s")',
         entry.pdf_path, entry.page, tostring(entry.begin_y)
     )
 
@@ -111,9 +111,12 @@ local function insertion_lines(entry)
         end
         table.insert(lines, "")
     end
-    table.insert(lines, quote)
-    table.insert(lines, string.format("// sioyek:%s", entry.uuid))
-    table.insert(lines, source_link)
+    table.insert(lines, "#highlight-box[")
+    table.insert(lines, "  " .. quote)
+    table.insert(lines, string.format("  // sioyek:%s", entry.uuid))
+    table.insert(lines, "")
+    table.insert(lines, "  " .. source_link)
+    table.insert(lines, "]")
     return lines
 end
 

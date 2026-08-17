@@ -1,4 +1,4 @@
-#import "/templates/note.typ": note-template, show-associated-cards
+#import "/templates/note.typ": back-link, highlight-box, note-template, source-link
 #show: note-template
 
 = {doc[ref]} - (Notes) {doc[title]} <{doc[ref]}-notes>
@@ -32,7 +32,9 @@
 
 == Cards
 
-#show-associated-cards(read("_cards.txt"))
+// AUTO-CARDS BEGIN — managed by research-cards-daemon
+// (no cards yet)
+// AUTO-CARDS END
 
 == Intentions
 

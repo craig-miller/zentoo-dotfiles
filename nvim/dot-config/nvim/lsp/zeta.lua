@@ -11,12 +11,22 @@ return {
         ".git",
     },
     init_options = {
-        -- Two link patterns so BOTH #link("x") and #link("x")[display] are
-        -- captured (Typst parses the display form as a nested call). @target is
-        -- the link path; headings supply node titles.
+        -- Capture #link("x") and #link("x")[display] (Typst parses the
+        -- display form as a nested call). @target is the link path; headings
+        -- supply node titles.
+        --
+        -- Also capture wrapper functions defined in /templates/note.typ that
+        -- keep the target as their first string arg — currently just
+        -- back-link. Add each with its own #eq? pattern pair (raw + nested)
+        -- rather than #any-of? — the latter parses in tree-sitter but
+        -- smacker/go-tree-sitter's FilterPredicates ignores unknown
+        -- operators, degrading the query to "match every call" and
+        -- flooding the graph with garbage edges.
         query = [[
             (code (call item: (ident) @link (#eq? @link "link") (group (string) @target )))
             (code (call item: (call item: (ident) @link (#eq? @link "link") (group (string) @target ))))
+            (code (call item: (ident) @link (#eq? @link "back-link") (group (string) @target )))
+            (code (call item: (call item: (ident) @link (#eq? @link "back-link") (group (string) @target ))))
             (heading (text) @title)
             (heading (label) @taxon)
         ]],
