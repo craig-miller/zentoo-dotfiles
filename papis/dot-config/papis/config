@@ -1,4 +1,5 @@
 [settings]
+doc-paths-lowercase = False
 default-library = papers
 editor = nvim
 opentool = xdg-open
@@ -9,7 +10,7 @@ fzf-extra-flags = ['--ansi', '--multi', '-i', '--delimiter', '§', '--with-nth',
 
 notes-name = notes.typ
 notes-template = ~/.config/papis/notes-template.typ
-ref-format = {doc[author_list][0][family]}{doc[year]}
+ref-format.jinja2 = {{ doc['author_list'][0]['family'] | title }}{{ doc['year'] }}
 add-folder-name = {doc[ref]}
 
 [papers]
