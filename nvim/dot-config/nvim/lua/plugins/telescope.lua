@@ -67,12 +67,35 @@ return {
         })
         telescope.load_extension("fzf")
 
-        -- Preview TS attach shim for nvim-treesitter main branch.
-        -- Upstream telescope's ts_highlighter reaches for master-branch APIs
-        -- (nvim-treesitter.parsers.ft_to_lang, nvim-treesitter.configs.is_enabled)
-        -- that main dropped, so it throws mid-attach and neither TS nor the regex
-        -- fallback runs — the preview renders as unhighlighted white text.
-        -- Replace with the built-in vim.treesitter APIs, which main uses natively.
+        -- nvim-treesitter main-branch API gap. Telescope call sites do
+        -- `pcall(require, "nvim-treesitter.parsers")` — that succeeds on
+        -- main (the top-level module still exists), then call `.ft_to_lang`
+        -- or `configs.is_enabled` which main dropped, and error out.
+        -- Stub both at the source so every telescope path benefits
+        -- (current_buffer_fuzzy_find in builtin/__files.lua is one such
+        -- path — throws on ft_to_lang without this).
+        local parsers_ok, parsers = pcall(require, "nvim-treesitter.parsers")
+        if parsers_ok and not parsers.ft_to_lang then
+            parsers.ft_to_lang = function(ft)
+                return vim.treesitter.language.get_lang(ft) or ft
+            end
+        end
+        -- nvim-treesitter.configs is entirely absent on main (not just
+        -- API-changed like parsers is), so pcall-require FAILS and any
+        -- guard that keys off configs_ok never fires. Inject a fake module
+        -- into package.loaded so telescope's later pcall(require, ...) call
+        -- returns our stub instead of failing and leaving the caller with
+        -- an error-string that indexes to nil.
+        if not package.loaded["nvim-treesitter.configs"] then
+            package.loaded["nvim-treesitter.configs"] = {
+                is_enabled = function(_, _, _) return true end,
+            }
+        end
+
+        -- Preview TS attach shim. Complements the source-level stubs above:
+        -- the previewer's ts_highlighter body uses master-branch APIs in a
+        -- shape the stubs alone can't fix (it also depends on parser +
+        -- query wiring). Replace with built-in vim.treesitter APIs.
         local putils = require("telescope.previewers.utils")
         putils.ts_highlighter = function(bufnr, ft)
             local lang = vim.treesitter.language.get_lang(ft)
@@ -85,13 +108,6 @@ return {
     keys = {
         -- Group label for which-key
         { "<leader>f", desc = "Find" },
-
-        -- Find in current buffer
-        {
-            "<leader><leader>",
-            function() require("telescope.builtin").current_buffer_fuzzy_find() end,
-            desc = "Find .",
-        },
 
         -- Find files in cwd
         {

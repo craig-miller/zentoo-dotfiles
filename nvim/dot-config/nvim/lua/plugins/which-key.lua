@@ -19,7 +19,7 @@ return {
             { "<leader>g", group = "[G]o To", mode = { "n", "v" } },
 
             -- Code Actions
-            { "<leader>c", group = "[C]ode",  mode = { "n", "v" } },
+            { "<leader>c", group = "[C]ode",  mode = { "n", "v" }, icon = { cat = "lsp",      name = "function" } },
             -- TODO: map <leader>cc to [c]ode->toggle [c]omment selection
             {
                 "<leader>cf",
@@ -30,6 +30,19 @@ return {
                 mode = { "n", "v" },
             },
             { "<leader>d", group = "Debug | [D]atabase", mode = { "n", "v" } },
+
+            -- Papers group — papis.nvim (ft-scoped: pp/pi/pf/pn/pe), zettel
+            -- (pz/pl), local-sioyek (ph/pj). Registered globally so the popup
+            -- shows a name regardless of which buffer is focused. Icons come
+            -- from mini.icons via { cat, name } lookup so the glyph tracks
+            -- whatever mini.icons ships (rather than a hardcoded nerd-font
+            -- codepoint that may not render).
+            { "<leader>p", group = "Papers",             mode = { "n" }, icon = { cat = "extension", name = "pdf" } },
+
+            -- Notes group — zettel (nc/nl), zeta note graph (ng). Global for
+            -- the same reason as Papers.
+            { "<leader>n", group = "Notes",              mode = { "n" }, icon = { cat = "filetype",  name = "typst" } },
+
 
             -- Buffers group
             { "<leader>b", group = "Buffers",            mode = { "n", "v" } },
@@ -89,7 +102,7 @@ return {
             -- lang/swift.lua). Targets: debug/release/run-debug/run-release/
             -- test/clean; JustfileInit creates a starter justfile in Swift
             -- PM projects.
-            { "<leader>m",   group = "Make",                                                       mode = { "n" } },
+            { "<leader>m",   group = "Make",                                                       mode = { "n" }, icon = { cat = "filetype", name = "just" } },
             { "<leader>mi",  "<Cmd>JustfileInit<CR>",     desc = "[I]nit justfile",                mode = { "n" } },
             { "<leader>mc",  "<Cmd>make clean<CR>",       desc = "[C]lean",                        mode = { "n" } },
             { "<leader>mb",  group = "Build",                                                      mode = { "n" } },
@@ -183,7 +196,6 @@ return {
             end,
             desc = "Buffer Local Keymaps",
         },
-        { "<leader>/",  ":normal gcc<CR><DOWN>", desc = "[/] Comment line",        mode = { "n" } },
         { "<Esc>",      "<cmd>nohlsearch<CR>",   desc = "Clear search highlights", mode = { "n" } },
         { "<leader>tm", "<cmd>Noice telescope<cr>",    desc = "Messages",                mode = { "n", "v" } },
         { "<leader>q",  ":qa<CR>",               desc = "Quit",                    mode = { "n" } },
