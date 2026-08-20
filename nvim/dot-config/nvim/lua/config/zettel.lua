@@ -315,7 +315,7 @@ map("<leader>pz", M.new_grounded, "New card from paper")
 map("<leader>pl", M.insert_paper_link, "Insert paper-note link")
 map("<leader>nc", M.new_ungrounded, "New card (ungrounded)")
 map("<leader>nl", M.insert_card_link, "Link to card")
-map("<leader>fn", M.find_note, "Find note")
+map("<leader>fn", M.find_note, "Find Note")
 
 local ok_wk, wk = pcall(require, "which-key")
 if ok_wk then
@@ -324,7 +324,7 @@ if ok_wk then
         { "<leader>pl", desc = "Insert paper-note link" },
         { "<leader>nc", desc = "New card (ungrounded)" },
         { "<leader>nl", desc = "Link to card" },
-        { "<leader>fn", desc = "Find note" },
+        { "<leader>fn", desc = "Find Note" },
     })
 end
 

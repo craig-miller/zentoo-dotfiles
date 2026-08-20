@@ -116,7 +116,7 @@ return {
                 vim.cmd("normal! m'")
                 require("telescope.builtin").find_files()
             end,
-            desc = "[F]ind [F]iles in cwd",
+            desc = "Find Files in cwd",
         },
 
         -- Live grep in project
@@ -130,14 +130,14 @@ return {
         {
             "<leader>fr",
             function() require("telescope.builtin").oldfiles() end,
-            desc = "[F]ind [R]ecent",
+            desc = "Find Recent",
         },
 
         -- Grep for word under cursor
         {
             "<leader>fw",
             function() require("telescope.builtin").grep_string() end,
-            desc = "[F]ind [W]ord",
+            desc = "Find Word",
         },
 
         -- Find in nvim config
@@ -151,7 +151,7 @@ return {
                     cwd = vim.fn.expand("~/dotfiles/nvim/dot-config/nvim"),
                 })
             end,
-            desc = "[F]ind [C]onfig",
+            desc = "Find Config",
         },
 
         {

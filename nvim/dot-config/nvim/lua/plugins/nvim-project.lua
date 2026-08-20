@@ -2,17 +2,9 @@ return {
     "coffebar/neovim-project",
     opts = {
         projects = { -- define project roots
-            "~/Developer/Connectr/Connectr",
-            "~/Notes",
-            "~/Developer/web/*",
-            "~/Music/strudel/*",
-            "~/Developer/*",
-            "~/Developer/AI/*",
-            "~/Developer/embedded-swift/*",
-            "~/Developer/leet/*",
-            "~/Developer/embedded-swift/BlueAISProject/BlueAIS/",
-            "~/Developer/embedded-swift/BlueAISProject/Packages/MadDrivers/",
-            "~/Developer/nvim-plugins/*",
+            "~/src/*",
+            "~/docs/*",
+            "~/research/pubs/",
             "~/.config/*",
         },
         picker = {
@@ -42,7 +34,7 @@ return {
     },
     keys = {
         -- Project Management: Ctrl+d in the picker deletes project session history.
-        { "<leader>fp", "<CMD>NeovimProjectDiscover<CR>", desc = "Project", mode = { "n" } },
+        { "<leader>fp", "<CMD>NeovimProjectDiscover<CR>", desc = "Find Project", mode = { "n" } },
         -- { "<leader>fpr", "<CMD>NeovimProjectHistory<CR>",    desc = "Recent",       mode = { "n" } },
         -- { "<leader>fpl", "<CMD>NeovimProjectLoadRecent<CR>", desc = "Last Session", mode = { "n" } },
     },
