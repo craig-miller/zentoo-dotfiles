@@ -185,10 +185,11 @@ M._vault_items = vault_items
 
 -- templates: new cards are born <Fleeting>; flip to <Idea> once processed.
 -- Two-line preamble opts the card into the shared vault template
--- (~/research/templates/note.typ) so bibliography + any future styling is
--- inherited automatically.
+-- (~/research/.templates/note.typ) so bibliography + any future styling is
+-- inherited automatically. The leading dot on .templates hides the dir
+-- from zeta's note-graph scan (IngoreDir skips dot-prefixed relatives).
 local PREAMBLE = {
-    '#import "/templates/note.typ": back-link, highlight-box, note-template, source-link',
+    '#import "/.templates/note.typ": back-link, highlight-box, note-template, source-link',
     "#show: note-template",
     "",
 }
