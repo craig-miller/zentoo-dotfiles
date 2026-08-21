@@ -4,6 +4,7 @@ abbr -a ls 'eza --icons'
 abbr -a ll 'eza -l --git --icons'
 abbr -a la 'eza -la --git --icons'
 abbr -a lt 'eza --tree --git-ignore --icons'
+abbr -a research 'cd ~/research && nvim index.typ'
 
 # stow with our dotfiles flags — --dotfiles for dot-* path mangling,
 # --no-folding to force per-file symlinks (avoid directory-level),
