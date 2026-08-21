@@ -9,12 +9,12 @@ return {
         {
             "<leader>ph",
             function() require("local.sioyek").pick_highlights() end,
-            desc = "Sioyek highlights picker",
+            desc = "Insert highlight",
         },
         {
-            "<leader>pj",
+            "<leader>ps",
             function() require("local.sioyek").jump_to_source() end,
-            desc = "Sioyek jump to source (highlight or paper)",
+            desc = "Show highlight in PDF",
         },
     },
 }

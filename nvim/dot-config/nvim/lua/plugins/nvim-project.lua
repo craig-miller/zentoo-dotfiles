@@ -4,7 +4,7 @@ return {
         projects = { -- define project roots
             "~/src/*",
             "~/docs/*",
-            "~/research/pubs/",
+            "~/research",
             "~/.config/*",
         },
         picker = {

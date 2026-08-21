@@ -289,7 +289,7 @@ function M.follow_link()
     local resolved
     if path:sub(1, 1) == "." then -- relative to the note (zeta's rule)
         resolved = vim.fs.normalize(vim.fs.dirname(fname) .. "/" .. path)
-    else -- root-relative (root = nearest typst.toml/.git, i.e. ~/research)
+    else                          -- root-relative (root = nearest typst.toml/.git, i.e. ~/research)
         local root = vim.fs.root(fname, { "typst.toml", ".git" }) or RESEARCH
         resolved = vim.fs.normalize(root .. "/" .. path)
     end
@@ -311,18 +311,18 @@ vim.api.nvim_create_autocmd("LspAttach", {
 local function map(lhs, fn, desc)
     vim.keymap.set("n", lhs, fn, { desc = desc })
 end
-map("<leader>pz", M.new_grounded, "New card from paper")
-map("<leader>pl", M.insert_paper_link, "Insert paper-note link")
-map("<leader>nc", M.new_ungrounded, "New card (ungrounded)")
+map("<leader>nc", M.new_ungrounded, "New card")
+map("<leader>np", M.new_grounded, "New card from paper")
+map("<leader>pl", M.insert_paper_link, "Link to paper notes")
 map("<leader>nl", M.insert_card_link, "Link to card")
 map("<leader>fn", M.find_note, "Find Note")
 
 local ok_wk, wk = pcall(require, "which-key")
 if ok_wk then
     wk.add({
-        { "<leader>pz", desc = "New card from paper" },
-        { "<leader>pl", desc = "Insert paper-note link" },
-        { "<leader>nc", desc = "New card (ungrounded)" },
+        { "<leader>nc", desc = "New card" },
+        { "<leader>np", desc = "New card from paper" },
+        { "<leader>pl", desc = "Link to paper notes" },
         { "<leader>nl", desc = "Link to card" },
         { "<leader>fn", desc = "Find Note" },
     })

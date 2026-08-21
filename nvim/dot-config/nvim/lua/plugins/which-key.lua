@@ -35,9 +35,7 @@ return {
             -- Papers group — papis.nvim (ft-scoped: pp/pi/pf/pn/pe), zettel
             -- (pz/pl), local-sioyek (ph/pj). Registered globally so the popup
             -- shows a name regardless of which buffer is focused. Icons come
-            -- from mini.icons via { cat, name } lookup so the glyph tracks
-            -- whatever mini.icons ships (rather than a hardcoded nerd-font
-            -- codepoint that may not render).
+            -- from mini.icons
             { "<leader>p", group = "Papers", mode = { "n" }, icon = { cat = "extension", name = "pdf" } },
 
             -- Notes group — zettel (nc/nl), zeta note graph (ng). Global for

@@ -36,11 +36,11 @@ return {
                 vim.keymap.set("n", lhs, rhs, { buffer = 0, desc = desc })
                 if ok_wk then wk.add({ lhs, desc = desc, buffer = 0 }) end
             end
-            map("<leader>pp", "<cmd>Papis search<cr>",                "Papis: search library")
-            map("<leader>pi", "<cmd>Papis at-cursor show-popup<cr>",  "Papis: info popup")
-            map("<leader>pf", "<cmd>Papis at-cursor open-file<cr>",   "Papis: open PDF")
-            map("<leader>pn", "<cmd>Papis at-cursor open-note<cr>",   "Papis: open notes")
-            map("<leader>pe", "<cmd>Papis at-cursor edit<cr>",        "Papis: edit info.yaml")
+            map("<leader>pc", "<cmd>Papis search<cr>", "Insert @citekey")
+            map("<leader>pi", "<cmd>Papis at-cursor show-popup<cr>", "@citekey Paper info")
+            map("<leader>pp", "<cmd>Papis at-cursor open-file<cr>", "@citekey Open PDF")
+            map("<leader>pn", "<cmd>Papis at-cursor open-note<cr>", "@citekey open notes")
+            map("<leader>pe", "<cmd>Papis at-cursor edit<cr>", "@citekey edit info.yaml")
         end
 
         -- Current buffer: lazy-load was triggered by opening a writing filetype,

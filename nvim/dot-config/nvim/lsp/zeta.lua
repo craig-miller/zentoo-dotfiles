@@ -52,10 +52,10 @@ return {
         end, { desc = "zeta: open the live note graph" })
 
         vim.keymap.set("n", "<leader>ng", "<Cmd>ZetaGraph<CR>",
-            { buffer = bufnr, desc = "Note graph (zeta)" })
+            { buffer = bufnr, desc = "Note graph" })
         local ok_wk, wk = pcall(require, "which-key")
         if ok_wk then
-            wk.add({ "<leader>ng", desc = "Note graph (zeta)", buffer = bufnr })
+            wk.add({ "<leader>ng", desc = "Note graph", buffer = bufnr })
         end
     end,
 }
