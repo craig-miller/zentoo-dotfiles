@@ -1,0 +1,27 @@
+#!/bin/sh
+# noctalia-greeter-resync — push the current noctalia desktop palette +
+# wallpaper into /var/lib/noctalia-greeter/. Run after changing wallpaper
+# or theme inside Noctalia settings.
+#
+# Equivalent to the upstream "Sync Now" button, minus the polkit agent
+# requirement: the IPC builds the staging dir, then we apply it as root
+# via sudo instead of pkexec.
+
+set -eu
+
+if ! noctalia msg status >/dev/null 2>&1; then
+    echo "noctalia-greeter-resync: noctalia is not running" >&2
+    exit 1
+fi
+
+noctalia msg greeter-sync >/dev/null
+
+STAGING="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/noctalia-greeter-sync"
+
+if [ ! -f "$STAGING/appearance.json" ]; then
+    echo "noctalia-greeter-resync: staging dir missing: $STAGING" >&2
+    exit 1
+fi
+
+sudo noctalia-greeter-apply-appearance "$STAGING"
+echo "noctalia-greeter-resync: synced. Log out to see the new greeter."

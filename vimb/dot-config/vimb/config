@@ -1,0 +1,12 @@
+set dark-mode=on
+
+# style.css disabled: Dark Reader (loaded via /usr/share/vimb/scripts.js)
+# handles page theming; our filter recipe was Phase 1 and is now redundant.
+set stylesheet=off
+
+# Manual dark-mode toggle. Noctalia's SIGUSR2 reload realigns on the next
+# system theme change, so this is a per-session override.
+:nnoremap zm :set dark-mode!<CR>
+
+# Chrome palette rendered by noctalia (temporary — will move to /etc/vimb/config after ebuild bump)
+source ~/.config/vimb/noctalia-theme

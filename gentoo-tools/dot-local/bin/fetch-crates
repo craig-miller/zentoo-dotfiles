@@ -1,0 +1,70 @@
+#!/bin/sh
+# Pre-fetch a Rust ebuild's CRATES list from static.crates.io into DISTDIR,
+# bypassing portage's broken default URLs (crates.io/api/v1/... → 403).
+#
+# Usage: sudo fetch-crates <category/package[-version]>
+# Example: sudo fetch-crates gui-apps/awww
+#          sudo fetch-crates gui-apps/awww-0.12.1
+
+set -eu
+
+if [ $# -ne 1 ]; then
+	echo "usage: $0 <category/package[-version]>" >&2
+	exit 2
+fi
+
+atom=$1
+
+ebuild=$(equery -q which "$atom" 2>/dev/null) || {
+	echo "no ebuild found for: $atom" >&2
+	exit 1
+}
+
+if [ ! -f "$ebuild" ]; then
+	echo "ebuild resolved but missing on disk: $ebuild" >&2
+	exit 1
+fi
+
+distdir=$(portageq envvar DISTDIR)
+[ -d "$distdir" ] || { echo "DISTDIR not found: $distdir" >&2; exit 1; }
+
+echo "ebuild:  $ebuild"
+echo "distdir: $distdir"
+
+crates=$(awk '/^CRATES="/,/^"$/' "$ebuild" | tr -d '\t" ' | grep '@' || true)
+if [ -z "$crates" ]; then
+	echo "no CRATES list in ebuild — nothing to fetch" >&2
+	exit 0
+fi
+
+count=$(printf '%s\n' "$crates" | wc -l | tr -d ' ')
+echo "crates:  $count"
+echo
+
+fetched=0
+skipped=0
+failed=0
+
+printf '%s\n' "$crates" | while IFS= read -r crate; do
+	name=${crate%@*}
+	ver=${crate#*@}
+	out="${distdir}/${name}-${ver}.crate"
+	if [ -f "$out" ]; then
+		printf 'skip  %s-%s\n' "$name" "$ver"
+		skipped=$((skipped+1))
+		continue
+	fi
+	url="https://static.crates.io/crates/${name}/${name}-${ver}.crate"
+	if curl -sfSL -o "${out}.partial" "$url"; then
+		mv "${out}.partial" "$out"
+		printf 'fetch %s-%s\n' "$name" "$ver"
+		fetched=$((fetched+1))
+	else
+		rm -f "${out}.partial"
+		printf 'FAIL  %s-%s\n' "$name" "$ver" >&2
+		failed=$((failed+1))
+	fi
+done
+
+echo
+echo "done"

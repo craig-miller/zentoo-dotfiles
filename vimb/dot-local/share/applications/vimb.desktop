@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Web Browser
+GenericName=Web Browser
+Comment=Access the Internet
+Exec=vimb %U
+Terminal=false
+Icon=feather
+Type=Application
+Categories=GTK;Network;WebBrowser;
+MimeType=text/html;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;

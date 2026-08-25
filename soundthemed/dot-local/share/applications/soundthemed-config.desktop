@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Sound Themes
+GenericName=Sound theme daemon configuration
+Comment=Configure event sounds for desktop notifications
+Exec=/usr/bin/soundthemed-config
+Icon=audio-speakers
+Terminal=false
+Categories=Settings;AudioVideo;Audio;
+Keywords=sound;theme;event;notification;
