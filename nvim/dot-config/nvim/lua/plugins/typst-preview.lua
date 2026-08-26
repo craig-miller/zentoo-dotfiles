@@ -3,6 +3,7 @@ return {
     version = "1.*",
     ft = "typst",
     opts = {
+        partial_rendering = false,
         -- Reuse the tinymist + websocat binaries already on PATH — no
         -- plugin-managed downloads. tinymist comes from Mason (see
         -- mason.lua); websocat from net-misc/websocat.
