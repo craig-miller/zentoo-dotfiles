@@ -1,0 +1,10 @@
+{
+  "providers": {
+    "fireworks": {
+      "baseUrl": "https://api.fireworks.ai/inference",
+      "api": "openai-completions",
+      "apiKey": "!pass show api/fireworks/token"
+    }
+  }
+}
+
