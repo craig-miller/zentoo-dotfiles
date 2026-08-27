@@ -1,5 +1,10 @@
 {
   "lastChangelogVersion": "0.84.3",
   "theme": "dark",
-  "extensions": ["~/.pi/agent/extensions/short-model-footer.ts"]
+  "extensions": [
+    "~/.pi/agent/extensions/short-model-footer.ts"
+  ],
+  "packages": [
+    "npm:pi-web-access"
+  ]
 }
