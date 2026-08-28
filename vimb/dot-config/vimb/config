@@ -4,6 +4,9 @@ set dark-mode=on
 # handles page theming; our filter recipe was Phase 1 and is now redundant.
 set stylesheet=off
 
+# Open links that request a new window/tab in the current window instead.
+set prevent-newwindow=on
+
 # Manual dark-mode toggle. Noctalia's SIGUSR2 reload realigns on the next
 # system theme change, so this is a per-session override.
 :nnoremap zm :set dark-mode!<CR>
