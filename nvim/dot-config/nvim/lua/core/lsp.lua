@@ -15,6 +15,10 @@ vim.lsp.enable({
     -- "bibli_ls"
 })
 
+-- Neovim 0.12 enables LSP document-color highlighting by default.
+-- Tinymist reports Typst colors and Neovim paints the whole color call
+-- with a background. We use nvim-highlight-colors virtual swatches instead.
+vim.lsp.document_color.enable(false)
 
 vim.diagnostic.config({
     severity_sort = true,

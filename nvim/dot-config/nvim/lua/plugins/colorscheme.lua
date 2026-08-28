@@ -63,7 +63,9 @@ return {
     {
         "brenoprata10/nvim-highlight-colors",
         opts = {
-            render = "foreground, virtual",
+            -- Show color previews as virtual text so the source text
+            -- remains readable and its background is not changed.
+            render = "virtual",
             virtual_symbol = "■",
             virtual_symbol_prefix = "",
             virtual_symbol_suffix = " ",
