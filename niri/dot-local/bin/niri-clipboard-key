@@ -1,0 +1,62 @@
+#!/usr/bin/env sh
+set -eu
+
+usage() {
+    echo "usage: niri-clipboard-key copy|paste|cut" >&2
+    exit 2
+}
+
+action="${1:-}"
+[ -n "$action" ] || usage
+
+app_id="$({ niri msg -j focused-window 2>/dev/null || true; } | jq -r '.app_id // ""' 2>/dev/null || true)"
+
+is_terminal=0
+case "$app_id" in
+    foot|footclient|kitty|Alacritty|alacritty|com.mitchellh.ghostty|org.wezfurlong.wezterm|org.gnome.Console|org.gnome.Terminal|kgx|xterm)
+        is_terminal=1
+        ;;
+esac
+
+send_ctrl_key() {
+    key="$1"
+    # niri runs keybinds on key press; give the physical Mod+<key> chord a brief
+    # moment to be released before emitting the app-facing shortcut.
+    sleep 0.15
+    exec wtype -m logo -M ctrl -k "$key" -m ctrl
+}
+
+send_ctrl_shift_key() {
+    key="$1"
+    # niri runs keybinds on key press; give the physical Mod+<key> chord a brief
+    # moment to be released before emitting the app-facing shortcut.
+    sleep 0.15
+    exec wtype -m logo -M ctrl -M shift -k "$key" -m shift -m ctrl
+}
+
+case "$action" in
+    copy)
+        if [ "$is_terminal" -eq 1 ]; then
+            send_ctrl_shift_key c
+        else
+            send_ctrl_key c
+        fi
+        ;;
+    paste)
+        if [ "$is_terminal" -eq 1 ]; then
+            send_ctrl_shift_key v
+        else
+            send_ctrl_key v
+        fi
+        ;;
+    cut)
+        if [ "$is_terminal" -eq 1 ]; then
+            send_ctrl_shift_key x
+        else
+            send_ctrl_key x
+        fi
+        ;;
+    *)
+        usage
+        ;;
+esac

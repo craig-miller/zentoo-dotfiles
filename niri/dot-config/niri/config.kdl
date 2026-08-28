@@ -96,6 +96,18 @@ output "HDMI-A-1" {
     mode "3840x2160@60.000"
     scale 1.25
     position x=0 y=0
+
+    layout {
+        default-column-width { proportion 0.5; }
+
+        preset-column-widths {
+            proportion 0.5
+            proportion 1.0
+        }
+
+        always-center-single-column
+        center-focused-column "on-overflow"
+    }
 }
 
 output "eDP-1" {
@@ -104,6 +116,8 @@ output "eDP-1" {
     position x=672 y=1728
 }
 // Settings that influence how windows are positioned and sized.
+// This global layout is the default/internal-display layout.
+// The external HDMI-A-1 output above overrides only the settings that should differ there.
 // Find more information on the wiki:
 // https://github.com/YaLTeR/niri/wiki/Configuration:-Layout
 layout {
@@ -175,11 +189,7 @@ overview {
         off
     }
 }
-// Add lines like this to spawn processes at startup.
-// Note that running niri as a session supports xdg-desktop-autostart,
-// which may be more convenient to use.
-// See the binds section below for more spawn examples.
-// This line starts waybar, a commonly used bar for Wayland compositors.
+
 environment {
   XDG_CURRENT_DESKTOP "niri"
   GSK_RENDERER "ngl"
@@ -320,11 +330,15 @@ binds {
 
     // ── Window / session ──────────────────────────────
     Mod+Q       { close-window; }
+    Mod+C       { spawn "/home/craig/.local/bin/niri-clipboard-key" "copy"; }
+    Mod+V       { spawn "noctalia" "msg" "panel-toggle" "clipboard"; }
+    Mod+Shift+V { spawn "/home/craig/.local/bin/niri-clipboard-key" "paste"; }
+    Mod+X       { spawn "/home/craig/.local/bin/niri-clipboard-key" "cut"; }
     Mod+P       { spawn "foot" "--app-id=pass-picker" "fish" "-c" "pt"; }
     Mod+Shift+E { quit; }
 
     // ── Overview ──────────────────────────────────────
-    Mod+D { toggle-overview; }
+    Mod+O { toggle-overview; }
 
     // ── Focus (HJKL + arrows) — falls through to neighbor monitor/workspace ──
     Mod+H     { focus-column-or-monitor-left; }
@@ -375,13 +389,13 @@ binds {
     Mod+Shift+R { switch-preset-window-height; }
     Mod+F       { maximize-column; }
     Mod+Shift+F { fullscreen-window; }
-    Mod+C       { center-column; }
-    Mod+Minus   { set-column-width "-10%"; }
-    Mod+Equal   { set-column-width "+10%"; }
+    Mod+Equal   { center-column; }
+    Mod+Ctrl+H { set-column-width "-10%"; }
+    Mod+Ctrl+L { set-column-width "+10%"; }
 
     // ── Floating ──────────────────────────────────────
-    Mod+V       { toggle-window-floating; }
-    Mod+Shift+V { switch-focus-between-floating-and-tiling; }
+    Mod+T       { toggle-window-floating; }
+    Mod+Shift+T { switch-focus-between-floating-and-tiling; }
 
     // ── Workspaces ────────────────────────────────────
     Mod+1 { focus-workspace 1; }
@@ -396,9 +410,8 @@ binds {
 
     Mod+Shift+1 { move-column-to-workspace 1; }
     Mod+Shift+2 { move-column-to-workspace 2; }
-    // Mod+Shift+3 / Mod+Shift+4 reserved for Mac-style screenshots below.
-    // To move a column to ws 3 or 4, focus that workspace first (Mod+3 / Mod+4),
-    // or use the overview (Mod+D).
+    Mod+Shift+3 { move-column-to-workspace 3; }
+    Mod+Shift+4 { move-column-to-workspace 4; }
     Mod+Shift+5 { move-column-to-workspace 5; }
     Mod+Shift+6 { move-column-to-workspace 6; }
     Mod+Shift+7 { move-column-to-workspace 7; }
@@ -411,9 +424,9 @@ binds {
     Mod+Shift+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
     Mod+Shift+WheelScrollUp   cooldown-ms=150 { move-column-to-workspace-up; }
 
-    // ── Screenshots (Mac-style chords; M1 keyboard has no Print key) ──
-    Mod+Shift+3 { screenshot-screen; }   // Cmd+Shift+3 → whole output
-    Mod+Shift+4 { screenshot; }          // Cmd+Shift+4 → interactive selection
+    // ── Screenshots ──────────────────────────────────
+    Mod+S       { screenshot-screen; }   // whole output
+    Mod+Shift+S { screenshot; }          // interactive selection
 
     // ── Mac F-key remaps ──────────────────────────────
     // F1/F2 — Brightness
