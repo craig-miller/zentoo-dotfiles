@@ -5,6 +5,8 @@
     "~/.pi/agent/extensions/short-model-footer.ts"
   ],
   "packages": [
-    "npm:pi-web-access"
-  ]
+    "npm:pi-web-access",
+    "npm:@0xkahi/pi-vim-keys"
+  ],
+  "hideThinkingBlock": false
 }
