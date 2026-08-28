@@ -86,25 +86,23 @@ o.guifont = "SFMono Nerd Font"
 -- o.guifont = "AnonymicePro Nerd Font:h17" -- text below applies for VimScript
 -- o.guifont = "SFMono Nerd Font:h17" -- text below applies for VimScript
 
--- Allow clipboard copy paste in neovim
-vim.opt.clipboard = "unnamed"
-
--- OSC 52 clipboard provider. Terminal-based, works locally (foot supports
--- OSC 52) AND transparently over SSH — the escape sequence rides the ssh
--- connection back to the host terminal (foot / iTerm2 / Terminal.app) which
--- decodes it and populates the system clipboard. No xclip/wl-copy needed
--- on the remote side.
+-- Allow clipboard copy/paste in terminal Neovim.
+-- Copy uses OSC 52 so it works through terminal stacks such as foot/herdr/ssh.
+-- Paste uses Wayland directly to avoid OSC 52 clipboard-read response timeouts.
+local osc52 = require("vim.ui.clipboard.osc52")
 vim.g.clipboard = {
-    name = "OSC 52",
+    name = "OSC 52 copy / wl-clipboard paste",
     copy = {
-        ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
-        ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+        ["+"] = osc52.copy("+"),
+        ["*"] = osc52.copy("*"),
     },
     paste = {
-        ["+"] = require("vim.ui.clipboard.osc52").paste("+"),
-        ["*"] = require("vim.ui.clipboard.osc52").paste("*"),
+        ["+"] = { "wl-paste", "--no-newline" },
+        ["*"] = { "wl-paste", "--primary", "--no-newline" },
     },
+    cache_enabled = 0,
 }
+vim.opt.clipboard = "unnamedplus"
 
 -- Neovide
 -- if g.neovide then
