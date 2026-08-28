@@ -3,4 +3,5 @@
 
 require("config.lang.swift")
 require("config.lang.typst")
+require("config.lang.yaml")
 
