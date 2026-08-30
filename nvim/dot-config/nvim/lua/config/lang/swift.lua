@@ -50,26 +50,62 @@ function M.justfile_init()
         return
     end
 
-    vim.fn.writefile({
-        "debug:",
-        "    swift build -c debug",
-        "",
-        "release:",
-        "    swift build -c release",
-        "",
-        "run-debug:",
-        "    swift run -c debug",
-        "",
-        "run-release:",
-        "    swift run -c release",
-        "",
-        "test:",
-        "    swift test",
-        "",
-        "clean:",
-        "    swift package clean",
-    }, justfile)
-    vim.notify("JustfileInit: created " .. justfile, vim.log.levels.INFO)
+    local bundler_toml = pkg_dir .. "/Bundler.toml"
+    local is_bundler_app = vim.fn.filereadable(bundler_toml) == 1
+
+    local lines
+    if is_bundler_app then
+        lines = {
+            "debug:",
+            "    swift build -c debug",
+            "",
+            "release:",
+            "    swift build -c release",
+            "",
+            "run-debug:",
+            "    swift-bundler run --platform linux -c debug",
+            "",
+            "run-release:",
+            "    swift-bundler run --platform linux -c release",
+            "",
+            "bundle:",
+            "    swift-bundler bundle --platform linux --bundler linuxGeneric",
+            "",
+            "test:",
+            "    swift test",
+            "",
+            "clean:",
+            "    swift package clean",
+        }
+    else
+        lines = {
+            "debug:",
+            "    swift build -c debug",
+            "",
+            "release:",
+            "    swift build -c release",
+            "",
+            "run-debug:",
+            "    swift run -c debug",
+            "",
+            "run-release:",
+            "    swift run -c release",
+            "",
+            "test:",
+            "    swift test",
+            "",
+            "clean:",
+            "    swift package clean",
+        }
+    end
+
+    vim.fn.writefile(lines, justfile)
+    if is_bundler_app then
+        vim.notify("JustfileInit: created Swift Bundler justfile at " .. justfile,
+            vim.log.levels.INFO)
+    else
+        vim.notify("JustfileInit: created " .. justfile, vim.log.levels.INFO)
+    end
 end
 
 return M
