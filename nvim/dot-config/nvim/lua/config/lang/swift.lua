@@ -55,21 +55,48 @@ function M.justfile_init()
 
     local lines
     if is_bundler_app then
+        local app = vim.fn.fnamemodify(pkg_dir, ":t")
+        local product = app
+        for _, line in ipairs(vim.fn.readfile(bundler_toml)) do
+            local parsed_app = line:match("^%s*%[apps%.([^%]]+)%]%s*$")
+            if parsed_app then
+                app = parsed_app
+            end
+
+            local parsed_product = line:match("^%s*product%s*=%s*['\"]([^'\"]+)['\"]%s*$")
+            if parsed_product then
+                product = parsed_product
+            end
+        end
+
         lines = {
+            "app := \"" .. app .. "\"",
+            "product := \"" .. product .. "\"",
+            "host_os := os()",
+            "platform := if host_os == \"linux\" { \"linux\" } else if host_os == \"macos\" { \"macOS\" } else { host_os }",
+            "backend := if platform == \"linux\" { \"GtkBackend\" } else if platform == \"macOS\" { \"AppKitBackend\" } else if platform == \"iOS\" { \"UIKitBackend\" } else if platform == \"iOSSimulator\" { \"UIKitBackend\" } else if platform == \"android\" { \"AndroidBackend\" } else if platform == \"windows\" { \"WinUIBackend\" } else { \"DefaultBackend\" }",
+            "device := \"\"",
+            "simulator := \"\"",
+            "bundler := if platform == \"linux\" { \"linuxGeneric\" } else if platform == \"macOS\" { \"darwinApp\" } else if platform == \"windows\" { \"windowsGeneric\" } else if platform == \"android\" { \"androidAPK\" } else { \"\" }",
+            "device_arg := if device != \"\" { \"--device \" + quote(device) } else { \"\" }",
+            "simulator_arg := if simulator != \"\" { \"--simulator \" + quote(simulator) } else { \"\" }",
+            "bundler_arg := if bundler != \"\" { \"--bundler \" + bundler } else { \"\" }",
+            "export SCUI_DEFAULT_BACKEND := backend",
+            "",
             "debug:",
-            "    swift build -c debug",
+            "    swift build -c debug --product {{product}}",
             "",
             "release:",
-            "    swift build -c release",
+            "    swift build -c release --product {{product}}",
             "",
             "run-debug:",
-            "    swift-bundler run --platform linux -c debug",
+            "    swift-bundler run --platform {{platform}} -c debug {{device_arg}} {{simulator_arg}} {{app}}",
             "",
             "run-release:",
-            "    swift-bundler run --platform linux -c release",
+            "    swift-bundler run --platform {{platform}} -c release {{device_arg}} {{simulator_arg}} {{app}}",
             "",
             "bundle:",
-            "    swift-bundler bundle --platform linux --bundler linuxGeneric",
+            "    swift-bundler bundle --platform {{platform}} {{bundler_arg}} {{app}}",
             "",
             "test:",
             "    swift test",

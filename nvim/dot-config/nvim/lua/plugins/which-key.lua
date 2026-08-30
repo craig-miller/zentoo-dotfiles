@@ -87,6 +87,7 @@ return {
                 desc = "Open Diagnostics",
                 mode = { "n" },
             },
+            { "<leader>tb", "<Cmd>BuildOutputToggle<CR>", desc = "Toggle Build Output", mode = { "n" } },
 
             -- Find -- Mostly defined in telescope.lua plugin
             -- TODO: Move FZF-LUA keymaps here
@@ -103,20 +104,19 @@ return {
             { "<leader>fn", icon = { icon = "", hl = "MiniIconsYellow", color = "yellow" } },
             { "<leader>fp", icon = { icon = "", hl = "MiniIconsCyan", color = "cyan" } },
 
-            -- Make — dispatches through the project's justfile (see
-            -- lang/swift.lua). Targets: debug/release/run-debug/run-release/
-            -- test/clean; JustfileInit creates a starter justfile in Swift
-            -- PM projects.
+            -- Make — dispatches asynchronously through the project's justfile
+            -- (see lang/swift.lua). Targets: debug/release/run-debug/
+            -- run-release/test/clean; JustfileInit creates a starter justfile
+            -- in Swift PM projects.
             { "<leader>m", group = "Make", mode = { "n" }, icon = { cat = "filetype", name = "just" } },
             { "<leader>mi", "<Cmd>JustfileInit<CR>", desc = "[I]nit justfile", mode = { "n" } },
-            { "<leader>mc", "<Cmd>make clean<CR>", desc = "[C]lean", mode = { "n" } },
+            { "<leader>mc", "<Cmd>AsyncMake clean<CR>", desc = "[C]lean", mode = { "n" } },
             { "<leader>mb", group = "Build", mode = { "n" } },
-            { "<leader>mbd", "<Cmd>make debug<CR>", desc = "Build [D]ebug", mode = { "n" } },
-            { "<leader>mbr", "<Cmd>make release<CR>", desc = "Build [R]elease", mode = { "n" } },
-            { "<leader>mr", group = "Run", mode = { "n" } },
-            { "<leader>mrd", "<Cmd>make run-debug<CR>", desc = "Run [D]ebug", mode = { "n" } },
-            { "<leader>mrr", "<Cmd>make run-release<CR>", desc = "Run [R]elease", mode = { "n" } },
-            { "<leader>mrt", "<Cmd>make test<CR>", desc = "Run [T]ests", mode = { "n" } },
+            { "<leader>mbd", "<Cmd>AsyncMake debug<CR>", desc = "Build [D]ebug", mode = { "n" } },
+            { "<leader>mbr", "<Cmd>AsyncMake release<CR>", desc = "Build [R]elease", mode = { "n" } },
+            { "<leader>md", "<Cmd>AsyncMake run-debug<CR>", desc = "Run [D]ebug", mode = { "n" } },
+            { "<leader>mr", "<Cmd>AsyncMake run-release<CR>", desc = "Run [R]elease", mode = { "n" } },
+            { "<leader>mt", "<Cmd>AsyncMake test<CR>", desc = "Run [T]ests", mode = { "n" } },
 
 
             -- :Noice or :Noice history shows the message history:Noice last shows the last message in a popup
@@ -211,13 +211,14 @@ return {
         -- this machine; other terminals will silently no-op).
         { "<D-s>", "<Cmd>write<CR>",          desc = "Save",          mode = { "n", "v", "i" } },
 
-        -- Alt-b / Alt-r quick access for build/run debug. Global so they
-        -- work from any buffer; the current buffer's makeprg decides what
-        -- gets built (lang/swift.lua points swift buffers at their
+        -- Alt-b / Alt-r quick access for async build/run debug. Global so
+        -- they work from any buffer; the current buffer's makeprg decides
+        -- what gets built (lang/swift.lua points swift buffers at their
         -- justfile, other filetypes fall back to whatever makeprg they've
         -- been assigned).
-        { "<A-b>", "<Cmd>make debug<CR>",     desc = "Build (debug)", mode = { "n" } },
-        { "<A-r>", "<Cmd>make run-debug<CR>", desc = "Run (debug)",   mode = { "n" } },
+        { "<A-b>", "<Cmd>AsyncMake debug<CR>",     desc = "Build (debug)", mode = { "n" } },
+        { "<A-r>", "<Cmd>AsyncMake run-debug<CR>", desc = "Run (debug)",   mode = { "n" } },
+        { "<A-t>", "<Cmd>AsyncMake test<CR>",      desc = "Run tests",     mode = { "n" } },
 
         -- icon = { icon = " ", hl = "MiniIconsClose", color = "purple" },
     },

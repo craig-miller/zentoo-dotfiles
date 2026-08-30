@@ -11,3 +11,16 @@ vim.api.nvim_create_user_command("JustfileInit", function()
     end
     mod.justfile_init()
 end, {})
+
+vim.api.nvim_create_user_command("AsyncMake", function(opts)
+    require("config.async_make").make(opts.args)
+end, {
+    nargs = "*",
+    complete = function()
+        return { "debug", "release", "run-debug", "run-release", "test", "clean", "bundle" }
+    end,
+})
+
+vim.api.nvim_create_user_command("BuildOutputToggle", function()
+    require("config.async_make").toggle_output()
+end, {})
