@@ -1,170 +1,207 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env python3
+"""Speak text locally for Zentoo voice workflows.
 
-config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
-config_file="$config_home/zentoo-voice/config.toml"
-state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
-runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
+Reads text from arguments or stdin. Uses named voices from
+~/.config/zentoo-voice/config.toml, preferring Piper when configured and falling
+back to espeak-ng for a no-model baseline.
+"""
 
-backend="auto"
-piper_model=""
-piper_config=""
-piper_speaker=""
-espeak_voice="en-us"
-espeak_speed="165"
-
-if [[ -f "$config_file" ]]; then
-  values="$({ python3 - "$config_file" <<'PY'
 from __future__ import annotations
+
+import argparse
+import json
+import os
+import signal
+import subprocess
 import sys
+import tempfile
+from pathlib import Path
+from typing import Any
+
 try:
     import tomllib
-except ModuleNotFoundError:
-    raise SystemExit(0)
-with open(sys.argv[1], 'rb') as fh:
-    data = tomllib.load(fh)
-tts = data.get('tts', {}) if isinstance(data.get('tts', {}), dict) else {}
-for key in ('backend', 'piper_model', 'piper_config', 'piper_speaker', 'espeak_voice', 'espeak_speed'):
-    value = tts.get(key)
-    if value is not None:
-        print(f'{key}={value}')
-PY
-  } || true)"
-  while IFS='=' read -r key value; do
-    case "$key" in
-      backend) backend="$value" ;;
-      piper_model) piper_model="$value" ;;
-      piper_config) piper_config="$value" ;;
-      piper_speaker) piper_speaker="$value" ;;
-      espeak_voice) espeak_voice="$value" ;;
-      espeak_speed) espeak_speed="$value" ;;
-    esac
-  done <<< "$values"
-fi
+except ModuleNotFoundError:  # pragma: no cover
+    tomllib = None
 
-usage() {
-  cat <<'EOF'
-Usage: zentoo-speak [--backend auto|piper|espeak] [--stop] [text...]
 
-Reads text from arguments or stdin and speaks it locally. Piper is preferred when
-installed and configured; espeak-ng is the no-model fallback.
-EOF
-}
+def config_path() -> Path:
+    return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zentoo-voice" / "config.toml"
 
-stop_existing=false
-args=()
-while (($#)); do
-  case "$1" in
-    --backend)
-      [[ $# -ge 2 ]] || { echo "zentoo-speak: --backend needs a value" >&2; exit 2; }
-      backend="$2"
-      shift 2
-      ;;
-    --stop)
-      stop_existing=true
-      shift
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    --)
-      shift
-      args+=("$@")
-      break
-      ;;
-    *)
-      args+=("$1")
-      shift
-      ;;
-  esac
-done
 
-pid_file="$state_home/zentoo-voice/speak.pid"
-mkdir -p "$(dirname "$pid_file")"
+def state_dir() -> Path:
+    return Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "zentoo-voice"
 
-if [[ "$stop_existing" == true ]]; then
-  if [[ -s "$pid_file" ]]; then
-    old_pid="$(<"$pid_file")"
-    if [[ "$old_pid" =~ ^[0-9]+$ ]] && kill -0 "$old_pid" 2>/dev/null; then
-      kill "$old_pid" 2>/dev/null || true
-    fi
-    rm -f "$pid_file"
-  fi
-  if ((${#args[@]} == 0)); then
-    exit 0
-  fi
-fi
 
-if ((${#args[@]})); then
-  text="${args[*]}"
-else
-  text="$(cat)"
-fi
+def load_config() -> dict[str, Any]:
+    path = config_path()
+    if not path.exists() or tomllib is None:
+        return {}
+    with path.open("rb") as fh:
+        return tomllib.load(fh)
 
-text="${text//$'\r'/}"
-if [[ -z "${text//[[:space:]]/}" ]]; then
-  exit 0
-fi
 
-speak_with_piper() {
-  if [[ -z "$piper_model" ]]; then
-    echo "zentoo-speak: piper backend requires [tts].piper_model in $config_file" >&2
-    return 1
-  fi
-  if [[ ! -f "$piper_model" ]]; then
-    echo "zentoo-speak: piper model not found: $piper_model" >&2
-    return 1
-  fi
+def expand(value: Any) -> str:
+    return os.path.expandvars(os.path.expanduser(str(value))) if value is not None else ""
 
-  wav="$runtime_dir/zentoo-speak-$$.wav"
-  trap 'rm -f "$wav"' RETURN
 
-  cmd=(piper --model "$piper_model" --output_file "$wav")
-  if [[ -n "$piper_config" ]]; then
-    cmd+=(--config "$piper_config")
-  fi
-  if [[ -n "$piper_speaker" ]]; then
-    cmd+=(--speaker "$piper_speaker")
-  fi
+def have(command: str) -> bool:
+    return subprocess.run(["sh", "-c", f"command -v {command} >/dev/null 2>&1"]).returncode == 0
 
-  printf '%s\n' "$text" | "${cmd[@]}" >/dev/null
-  pw-play "$wav"
-}
 
-speak_with_espeak() {
-  espeak-ng -v "$espeak_voice" -s "$espeak_speed" --stdout "$text" | pw-play --media-role=Speech -
-}
+def stop_existing() -> None:
+    pid_file = state_dir() / "speak.pid"
+    if not pid_file.exists():
+        return
+    try:
+        pid = int(pid_file.read_text().strip())
+        os.kill(pid, signal.SIGTERM)
+    except Exception:
+        pass
+    try:
+        pid_file.unlink()
+    except FileNotFoundError:
+        pass
 
-(
-  printf '%s\n' "$$" > "$pid_file"
-  case "$backend" in
-    auto)
-      if command -v piper >/dev/null 2>&1 && [[ -n "$piper_model" && -f "$piper_model" ]]; then
-        speak_with_piper
-      elif command -v espeak-ng >/dev/null 2>&1; then
-        speak_with_espeak
-      else
-        echo "zentoo-speak: no TTS backend available; install media-sound/piper or app-accessibility/espeak-ng" >&2
-        exit 1
-      fi
-      ;;
-    piper)
-      command -v piper >/dev/null 2>&1 || { echo "zentoo-speak: piper not found" >&2; exit 1; }
-      speak_with_piper
-      ;;
-    espeak|espeak-ng)
-      command -v espeak-ng >/dev/null 2>&1 || { echo "zentoo-speak: espeak-ng not found" >&2; exit 1; }
-      speak_with_espeak
-      ;;
-    *)
-      echo "zentoo-speak: unknown backend: $backend" >&2
-      exit 2
-      ;;
-  esac
-) &
 
-pid=$!
-printf '%s\n' "$pid" > "$pid_file"
-wait "$pid"
-rm -f "$pid_file"
+def write_pid(pid: int) -> None:
+    directory = state_dir()
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / "speak.pid").write_text(f"{pid}\n")
+
+
+def clear_pid() -> None:
+    try:
+        (state_dir() / "speak.pid").unlink()
+    except FileNotFoundError:
+        pass
+
+
+def voice_config(config: dict[str, Any], voice_name: str | None, agent_name: str | None) -> tuple[str, dict[str, Any]]:
+    tts = config.get("tts", {}) if isinstance(config.get("tts", {}), dict) else {}
+    voices = tts.get("voices", {}) if isinstance(tts.get("voices", {}), dict) else {}
+    agent_voices = tts.get("agent_voices", {}) if isinstance(tts.get("agent_voices", {}), dict) else {}
+
+    selected = voice_name
+    if not selected and agent_name:
+        selected = str(agent_voices.get(agent_name, "") or agent_name)
+    if not selected:
+        selected = str(tts.get("default_voice", "") or "default")
+
+    base: dict[str, Any] = {
+        "backend": tts.get("backend", "auto"),
+        "espeak_voice": tts.get("espeak_voice", "en-us"),
+        "espeak_speed": tts.get("espeak_speed", 165),
+        "piper_model": tts.get("piper_model", ""),
+        "piper_config": tts.get("piper_config", ""),
+        "piper_speaker": tts.get("piper_speaker", ""),
+    }
+
+    specific = voices.get(selected, {}) if isinstance(voices.get(selected, {}), dict) else {}
+    base.update(specific)
+    return selected, base
+
+
+def speak_piper(text: str, cfg: dict[str, Any]) -> None:
+    model = expand(cfg.get("model") or cfg.get("piper_model"))
+    config = expand(cfg.get("config") or cfg.get("piper_config"))
+    speaker = expand(cfg.get("speaker") or cfg.get("piper_speaker"))
+
+    if not model:
+        raise RuntimeError("Piper voice has no model path")
+    if not Path(model).is_file():
+        raise RuntimeError(f"Piper model not found: {model}")
+
+    with tempfile.NamedTemporaryFile(prefix="zentoo-speak-", suffix=".wav", delete=False) as fh:
+        wav = Path(fh.name)
+
+    try:
+        cmd = ["piper", "--model", model, "--output_file", str(wav)]
+        if config:
+            cmd.extend(["--config", config])
+        if speaker:
+            cmd.extend(["--speaker", speaker])
+        subprocess.run(cmd, input=text + "\n", text=True, check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(["pw-play", str(wav)], check=True)
+    finally:
+        wav.unlink(missing_ok=True)
+
+
+def speak_espeak(text: str, cfg: dict[str, Any]) -> None:
+    voice = expand(cfg.get("espeak_voice") or "en-us")
+    speed = str(cfg.get("espeak_speed") or 165)
+    espeak = subprocess.Popen(["espeak-ng", "-v", voice, "-s", speed, "--stdout", text], stdout=subprocess.PIPE)
+    try:
+        subprocess.run(["pw-play", "--media-role=Speech", "-"], stdin=espeak.stdout, check=True)
+    finally:
+        if espeak.stdout:
+            espeak.stdout.close()
+        espeak.wait()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--backend", choices=("auto", "piper", "espeak", "espeak-ng"), help="override configured backend")
+    parser.add_argument("--voice", help="named TTS voice from [tts.voices]")
+    parser.add_argument("--agent", help="agent name; resolved through [tts.agent_voices]")
+    parser.add_argument("--stop", action="store_true", help="stop current playback before speaking; with no text, only stop")
+    parser.add_argument("--json", action="store_true", help="print selected voice/backend metadata instead of speaking")
+    parser.add_argument("text", nargs="*")
+    args = parser.parse_args()
+
+    if args.stop:
+        stop_existing()
+        if not args.text and sys.stdin.isatty() and not args.json:
+            return 0
+
+    text = " ".join(args.text) if args.text else sys.stdin.read()
+    text = text.replace("\r", "").strip()
+    if not text and not args.json:
+        return 0
+
+    config = load_config()
+    selected_voice, cfg = voice_config(config, args.voice, args.agent)
+    backend = args.backend or str(cfg.get("backend") or "auto")
+
+    model = expand(cfg.get("model") or cfg.get("piper_model"))
+    can_piper = have("piper") and bool(model) and Path(model).is_file()
+    can_espeak = have("espeak-ng")
+    resolved_backend = backend
+    if backend == "auto":
+        resolved_backend = "piper" if can_piper else "espeak"
+
+    if args.json:
+        print(json.dumps({
+            "ok": True,
+            "voice": selected_voice,
+            "agent": args.agent,
+            "backend": resolved_backend,
+            "piper_model": model,
+            "piper_config": expand(cfg.get("config") or cfg.get("piper_config")),
+            "espeak_voice": cfg.get("espeak_voice"),
+            "espeak_speed": cfg.get("espeak_speed"),
+        }, separators=(",", ":")))
+        return 0
+
+    write_pid(os.getpid())
+    try:
+        if resolved_backend == "piper":
+            if not have("piper"):
+                raise RuntimeError("piper not found; emerge media-sound/piper or use --backend espeak")
+            speak_piper(text, cfg)
+        elif resolved_backend in ("espeak", "espeak-ng"):
+            if not can_espeak:
+                raise RuntimeError("espeak-ng not found")
+            speak_espeak(text, cfg)
+        else:
+            raise RuntimeError(f"unknown backend: {resolved_backend}")
+    finally:
+        clear_pid()
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Exception as exc:
+        print(f"zentoo-speak: {exc}", file=sys.stderr)
+        raise SystemExit(1)
