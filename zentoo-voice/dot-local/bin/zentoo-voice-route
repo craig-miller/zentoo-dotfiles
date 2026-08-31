@@ -211,8 +211,16 @@ def agent_by_target(agents: list[dict], target: str) -> dict | None:
 
 
 def parse_directed(transcript: str) -> tuple[str, str, str] | None:
+    ask_focused = re.match(
+        r"^\s*ask\s*[,.;:-]\s+(.+?)\s*$",
+        transcript,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if ask_focused:
+        return "ask", "", trim(ask_focused.group(1))
+
     match = re.match(
-        r"^\s*(tell|ask)\s+([A-Za-z0-9_-]+)\s*[,.;:-]?\s+(.+?)\s*$",
+        r"^\s*(tell|ask)\s+([A-Za-z0-9_'-]+)\s*[,.;:-]?\s+(.+?)\s*$",
         transcript,
         re.IGNORECASE | re.DOTALL,
     )
@@ -251,9 +259,16 @@ def main() -> int:
     directed = parse_directed(transcript)
     if directed:
         verb, requested, message = directed
+        focused = focused_agent(agents)
+        if verb == "ask" and not requested:
+            if focused:
+                ok(focused, message, requested="", mode="ask-focused")
+                return 0
+            fail("no focused Herdr agent found", "I couldn't find the focused Herdr agent.")
+            return 0
+
         agent, label, score, match_kind = agent_by_token(agents, requested, config)
         if not agent:
-            focused = focused_agent(agents)
             if verb == "ask" and focused and norm(requested) in FOCUSED_ASK_WORDS:
                 ok(focused, f"{requested} {message}", requested="", mode="ask-focused")
                 return 0
