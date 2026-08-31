@@ -28,10 +28,52 @@ except ModuleNotFoundError:  # pragma: no cover - Python < 3.11 fallback is not 
     tomllib = None
 
 MIN_FUZZY_SCORE = 0.72
+PHONETIC_SCORE = 0.86
 
 
 def norm(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", value.lower())
+
+
+def phonetic_key(value: str) -> str:
+    """Return a small, conservative phonetic key for spoken one-word agent names.
+
+    This is intentionally simpler than full metaphone, but it catches common STT
+    substitutions such as "kari" for "carrie" while avoiding external deps.
+    """
+    value = norm(value)
+    if not value:
+        return ""
+
+    for old, new in (
+        ("ph", "f"),
+        ("ck", "k"),
+        ("qu", "k"),
+        ("x", "ks"),
+    ):
+        value = value.replace(old, new)
+
+    translated = []
+    for char in value:
+        translated.append({
+            "k": "c",
+            "q": "c",
+            "z": "s",
+            "v": "f",
+            "y": "i",
+        }.get(char, char))
+
+    collapsed = []
+    for char in translated:
+        if not collapsed or collapsed[-1] != char:
+            collapsed.append(char)
+
+    if not collapsed:
+        return ""
+
+    first, rest = collapsed[0], collapsed[1:]
+    consonants = [char for char in rest if char not in "aeiouhwy"]
+    return first + "".join(consonants)
 
 
 def trim(value: str) -> str:
@@ -118,6 +160,22 @@ def agent_by_token(agents: list[dict], token: str, config: dict) -> tuple[dict |
     if exact:
         agent, label = exact[0]
         return agent, label, 1.0, "exact"
+
+    requested_phonetic = phonetic_key(requested)
+    phonetic: list[tuple[dict, str]] = []
+    if len(requested) >= 3 and len(requested_phonetic) >= 2:
+        seen_panes: set[str] = set()
+        for normalized, agent, label in name_index:
+            pane_id = str(agent.get("pane_id") or "")
+            if pane_id in seen_panes:
+                continue
+            if len(normalized) >= 3 and phonetic_key(normalized) == requested_phonetic:
+                phonetic.append((agent, label))
+                seen_panes.add(pane_id)
+
+    if len(phonetic) == 1:
+        agent, label = phonetic[0]
+        return agent, label, PHONETIC_SCORE, "phonetic"
 
     best: tuple[float, dict, str] | None = None
     for normalized, agent, label in name_index:

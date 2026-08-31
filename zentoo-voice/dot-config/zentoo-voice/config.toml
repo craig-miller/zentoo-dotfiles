@@ -1,7 +1,9 @@
 # Fallback Herdr agent when no focused agent can be found.
 default_agent = "assistant"
 
-# Optional speech/transcription aliases for directed prompts:
+# Optional speech/transcription aliases for directed prompts.
+# The router already tries exact, phonetic, and fuzzy matching; add aliases for
+# recurring STT mistakes or preferred nicknames:
 #   tell <alias> <message>
 #   ask <alias> <message>
 [aliases]
