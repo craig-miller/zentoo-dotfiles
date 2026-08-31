@@ -4,15 +4,15 @@ set -euo pipefail
 notify() {
 	local message="$1"
 	if command -v notify-send >/dev/null 2>&1; then
-		notify-send "Zentoo Voice" "$message"
+		notify-send "AI Voice" "$message"
 	else
 		echo "$message" >&2
 	fi
 }
 
-route_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/zentoo-voice-route"
-response_text_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/zentoo-herdr-agent-response-text"
-speak_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/zentoo-speak"
+route_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-voice-route"
+response_text_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-herdr-agent-response-text"
+speak_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-speak"
 
 transcript="$(cat)"
 
@@ -21,7 +21,7 @@ if ! command -v herdr >/dev/null 2>&1; then
 	exit 127
 fi
 if [[ ! -x "$route_bin" ]]; then
-	echo "zentoo-voice-route not found at $route_bin" >&2
+	echo "ai-voice-route not found at $route_bin" >&2
 	exit 127
 fi
 if ! command -v jq >/dev/null 2>&1; then

@@ -2,8 +2,8 @@
 """Print the latest assistant response text for a Herdr-hosted Pi agent.
 
 Usage:
-  zentoo-herdr-agent-response-text            # focused agent
-  zentoo-herdr-agent-response-text carrie     # by pane id, agent name, cwd basename, or title
+  ai-herdr-agent-response-text            # focused agent
+  ai-herdr-agent-response-text carrie     # by pane id, agent name, cwd basename, or title
 
 This intentionally reads Pi's JSONL session log instead of scraping the terminal,
 which keeps the output suitable for later TTS piping.
@@ -205,5 +205,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except Exception as exc:
-        print(f"zentoo-herdr-agent-response-text: {exc}", file=sys.stderr)
+        print(f"ai-herdr-agent-response-text: {exc}", file=sys.stderr)
         raise SystemExit(1)

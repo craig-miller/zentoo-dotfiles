@@ -340,7 +340,7 @@ binds {
     Mod+Shift+V { spawn "/home/craig/.local/bin/niri-clipboard-key" "paste"; }
     Mod+X       { spawn "/home/craig/.local/bin/niri-clipboard-key" "cut"; }
     Mod+P       { spawn "foot" "--app-id=pass-picker" "fish" "-c" "pt"; }
-    Mod+A       { spawn "/home/craig/.local/bin/zentoo-voice-to-herdr"; }
+    Mod+A       { spawn "/home/craig/.local/bin/ai-voice-to-herdr"; }
     Mod+Shift+E { quit; }
 
     // ── Overview ──────────────────────────────────────

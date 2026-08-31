@@ -18,4 +18,4 @@ terminal = "foot"
 [process.actions.herdr]
 name = "Send to Herdr agent"
 type = "bash"
-command = "/home/craig/.local/bin/zentoo-voice-prompt-herdr"
+command = "/home/craig/.local/bin/ai-voice-prompt-herdr"

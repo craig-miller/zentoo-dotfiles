@@ -1,3 +1,10 @@
+[assistant]
+# User-facing assistant identity. The wake phrase and display name are
+# configurable; scripts should not hard-code an assistant name.
+name = "Ananda"
+wake_phrase = "hey carrie"
+display_name = "Ananda"
+
 # Fallback Herdr agent when no focused agent can be found.
 default_agent = "carrie"
 
@@ -21,15 +28,15 @@ espeak_speed = 165
 
 [tts.voices.assistant]
 backend = "auto"
-model = "/home/craig/.local/share/zentoo-voice/piper/en_US-ryan-medium.onnx"
-config = "/home/craig/.local/share/zentoo-voice/piper/en_US-ryan-medium.onnx.json"
+model = "/home/craig/.local/share/ai-voice/piper/en_US-ryan-medium.onnx"
+config = "/home/craig/.local/share/ai-voice/piper/en_US-ryan-medium.onnx.json"
 espeak_voice = "en-us"
 espeak_speed = 160
 
 [tts.voices.carrie]
 backend = "auto"
-model = "/home/craig/.local/share/zentoo-voice/piper/en_US-amy-medium.onnx"
-config = "/home/craig/.local/share/zentoo-voice/piper/en_US-amy-medium.onnx.json"
+model = "/home/craig/.local/share/ai-voice/piper/en_US-amy-medium.onnx"
+config = "/home/craig/.local/share/ai-voice/piper/en_US-amy-medium.onnx.json"
 espeak_voice = "en-us+f3"
 espeak_speed = 170
 

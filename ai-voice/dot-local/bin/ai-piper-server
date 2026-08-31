@@ -27,15 +27,15 @@ try:
 except ModuleNotFoundError:  # pragma: no cover
     tomllib = None
 
-LOG = logging.getLogger("zentoo-piper-server")
+LOG = logging.getLogger("ai-piper-server")
 
 
 def config_path() -> Path:
-    return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zentoo-voice" / "config.toml"
+    return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "ai-voice" / "config.toml"
 
 
 def runtime_dir() -> Path:
-    return Path(os.environ.get("XDG_RUNTIME_DIR", f"/tmp/zentoo-voice-{os.getuid()}")) / "zentoo-voice"
+    return Path(os.environ.get("XDG_RUNTIME_DIR", f"/tmp/ai-voice-{os.getuid()}")) / "ai-voice"
 
 
 def load_config() -> dict[str, Any]:
@@ -178,7 +178,7 @@ def main() -> int:
     try:
         fcntl.flock(pid_fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
-        LOG.info("another zentoo-piper-server is already running; exiting")
+        LOG.info("another ai-piper-server is already running; exiting")
         return 0
     pid_fh.seek(0)
     pid_fh.truncate()

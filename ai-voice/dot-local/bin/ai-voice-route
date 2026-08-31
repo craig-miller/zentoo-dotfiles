@@ -91,11 +91,11 @@ def run_json(command: list[str]) -> dict:
 
 
 def config_path() -> Path:
-    return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zentoo-voice" / "config.toml"
+    return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "ai-voice" / "config.toml"
 
 
 def state_path() -> Path:
-    return Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "zentoo-voice" / "current-agent"
+    return Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "ai-voice" / "current-agent"
 
 
 def load_config() -> dict:

@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=AI Piper Server
+Exec=sh -c "exec /home/craig/.local/bin/ai-piper-server --preload assistant --preload carrie >/tmp/ai-piper-server.log 2>&1"
+X-GNOME-Autostart-enabled=true

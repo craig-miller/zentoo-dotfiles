@@ -2,7 +2,7 @@
 """Speak text locally for Zentoo voice workflows.
 
 Reads text from arguments or stdin. Uses named voices from
-~/.config/zentoo-voice/config.toml, preferring Piper when configured and falling
+~/.config/ai-voice/config.toml, preferring Piper when configured and falling
 back to espeak-ng for a no-model baseline.
 """
 
@@ -26,7 +26,7 @@ except ModuleNotFoundError:  # pragma: no cover
 
 
 def config_path() -> Path:
-    return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zentoo-voice" / "config.toml"
+    return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "ai-voice" / "config.toml"
 
 
 def load_config() -> dict[str, Any]:
@@ -91,7 +91,7 @@ def speak_piper_server(text: str, voice_name: str, cfg: dict[str, Any]) -> bool:
     except (OSError, urllib.error.URLError):
         return False
 
-    with tempfile.NamedTemporaryFile(prefix="zentoo-speak-", suffix=".wav", delete=False) as fh:
+    with tempfile.NamedTemporaryFile(prefix="ai-speak-", suffix=".wav", delete=False) as fh:
         wav = Path(fh.name)
         fh.write(wav_data)
 
@@ -112,7 +112,7 @@ def speak_piper(text: str, cfg: dict[str, Any]) -> None:
     if not Path(model).is_file():
         raise RuntimeError(f"Piper model not found: {model}")
 
-    with tempfile.NamedTemporaryFile(prefix="zentoo-speak-", suffix=".wav", delete=False) as fh:
+    with tempfile.NamedTemporaryFile(prefix="ai-speak-", suffix=".wav", delete=False) as fh:
         wav = Path(fh.name)
 
     try:
@@ -203,5 +203,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except Exception as exc:
-        print(f"zentoo-speak: {exc}", file=sys.stderr)
+        print(f"ai-speak: {exc}", file=sys.stderr)
         raise SystemExit(1)
