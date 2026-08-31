@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=Zentoo Piper Server
+Exec=sh -c "exec /home/craig/.local/bin/zentoo-piper-server --preload assistant --preload carrie >/tmp/zentoo-piper-server.log 2>&1"
+X-GNOME-Autostart-enabled=true

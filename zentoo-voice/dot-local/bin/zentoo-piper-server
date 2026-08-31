@@ -1,0 +1,195 @@
+#!/usr/bin/env python3
+"""Small localhost Piper server for warm Zentoo TTS voices.
+
+This avoids Piper's Flask-based optional server and keeps configured voices loaded
+between requests. POST /synthesize with JSON:
+  {"text":"...", "voice":"carrie"}
+Returns WAV bytes.
+"""
+
+from __future__ import annotations
+
+import argparse
+import io
+import json
+import logging
+import os
+import signal
+import sys
+import wave
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from typing import Any
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover
+    tomllib = None
+
+from piper import PiperVoice, SynthesisConfig
+
+LOG = logging.getLogger("zentoo-piper-server")
+
+
+def config_path() -> Path:
+    return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zentoo-voice" / "config.toml"
+
+
+def runtime_dir() -> Path:
+    return Path(os.environ.get("XDG_RUNTIME_DIR", f"/tmp/zentoo-voice-{os.getuid()}")) / "zentoo-voice"
+
+
+def load_config() -> dict[str, Any]:
+    path = config_path()
+    if not path.exists() or tomllib is None:
+        return {}
+    with path.open("rb") as fh:
+        return tomllib.load(fh)
+
+
+def expand(value: Any) -> str:
+    return os.path.expandvars(os.path.expanduser(str(value))) if value is not None else ""
+
+
+class VoiceRegistry:
+    def __init__(self, config: dict[str, Any]) -> None:
+        tts = config.get("tts", {}) if isinstance(config.get("tts", {}), dict) else {}
+        self.voices = tts.get("voices", {}) if isinstance(tts.get("voices", {}), dict) else {}
+        self.default_voice = str(tts.get("default_voice") or "assistant")
+        self.cache: dict[str, PiperVoice] = {}
+
+    def voice_settings(self, voice_name: str) -> dict[str, Any]:
+        settings = self.voices.get(voice_name)
+        if not isinstance(settings, dict):
+            settings = self.voices.get(self.default_voice)
+        if not isinstance(settings, dict):
+            raise RuntimeError(f"no Piper settings found for voice {voice_name!r}")
+        return settings
+
+    def get(self, voice_name: str) -> tuple[PiperVoice, dict[str, Any]]:
+        selected = voice_name if voice_name in self.voices else self.default_voice
+        settings = self.voice_settings(selected)
+        cached = self.cache.get(selected)
+        if cached is not None:
+            return cached, settings
+
+        model = expand(settings.get("model") or settings.get("piper_model"))
+        if not model or not Path(model).is_file():
+            raise RuntimeError(f"Piper model not found for {selected!r}: {model}")
+
+        LOG.info("loading Piper voice %s from %s", selected, model)
+        voice = PiperVoice.load(Path(model))
+        self.cache[selected] = voice
+        return voice, settings
+
+
+def wav_bytes(voice: PiperVoice, text: str, settings: dict[str, Any]) -> bytes:
+    speaker = settings.get("speaker") or settings.get("piper_speaker")
+    syn_config = SynthesisConfig(
+        speaker_id=int(speaker) if speaker not in (None, "") else None,
+        length_scale=float(settings["length_scale"]) if "length_scale" in settings else None,
+        noise_scale=float(settings["noise_scale"]) if "noise_scale" in settings else None,
+        noise_w_scale=float(settings["noise_w_scale"]) if "noise_w_scale" in settings else None,
+        normalize_audio=not bool(settings.get("no_normalize", False)),
+        volume=float(settings.get("volume", 1.0)),
+    )
+    sentence_silence = float(settings.get("sentence_silence", 0.0))
+    silence = bytes(int(voice.config.sample_rate * sentence_silence * 2))
+
+    with io.BytesIO() as out:
+        with wave.open(out, "wb") as wav_file:
+            params_set = False
+            for i, audio_chunk in enumerate(voice.synthesize(text, syn_config)):
+                if not params_set:
+                    wav_file.setframerate(audio_chunk.sample_rate)
+                    wav_file.setsampwidth(audio_chunk.sample_width)
+                    wav_file.setnchannels(audio_chunk.sample_channels)
+                    params_set = True
+                if i > 0:
+                    wav_file.writeframes(silence)
+                wav_file.writeframes(audio_chunk.audio_int16_bytes)
+        return out.getvalue()
+
+
+def make_handler(registry: VoiceRegistry):
+    class Handler(BaseHTTPRequestHandler):
+        server_version = "ZentooPiper/1"
+
+        def log_message(self, fmt: str, *args: Any) -> None:
+            LOG.debug("%s - %s", self.address_string(), fmt % args)
+
+        def send_json(self, status: int, body: dict[str, Any]) -> None:
+            data = json.dumps(body).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def do_GET(self) -> None:  # noqa: N802
+            if self.path == "/health":
+                self.send_json(200, {"ok": True, "voices_loaded": sorted(registry.cache)})
+            else:
+                self.send_json(404, {"ok": False, "error": "not found"})
+
+        def do_POST(self) -> None:  # noqa: N802
+            if self.path != "/synthesize":
+                self.send_json(404, {"ok": False, "error": "not found"})
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                body = json.loads(self.rfile.read(length).decode("utf-8"))
+                text = str(body.get("text") or "").strip()
+                voice_name = str(body.get("voice") or registry.default_voice)
+                if not text:
+                    self.send_json(400, {"ok": False, "error": "empty text"})
+                    return
+                voice, settings = registry.get(voice_name)
+                data = wav_bytes(voice, text, settings)
+                self.send_response(200)
+                self.send_header("Content-Type", "audio/wav")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            except Exception as exc:  # keep daemon alive for later requests
+                LOG.exception("synthesis failed")
+                self.send_json(500, {"ok": False, "error": str(exc)})
+
+    return Handler
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=50321)
+    parser.add_argument("--preload", action="append", default=[])
+    parser.add_argument("--pid-file", default=str(runtime_dir() / "piper-server.pid"))
+    parser.add_argument("--debug", action="store_true")
+    args = parser.parse_args()
+
+    logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    registry = VoiceRegistry(load_config())
+    for voice_name in args.preload:
+        registry.get(voice_name)
+
+    pid_path = Path(args.pid_file)
+    pid_path.parent.mkdir(parents=True, exist_ok=True)
+    pid_path.write_text(f"{os.getpid()}\n")
+
+    httpd = ThreadingHTTPServer((args.host, args.port), make_handler(registry))
+
+    def stop(_signum: int, _frame: Any) -> None:
+        httpd.shutdown()
+
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    LOG.info("listening on http://%s:%s", args.host, args.port)
+    try:
+        httpd.serve_forever()
+    finally:
+        pid_path.unlink(missing_ok=True)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

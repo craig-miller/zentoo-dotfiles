@@ -14,6 +14,8 @@ import os
 import subprocess
 import sys
 import tempfile
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -61,11 +63,43 @@ def voice_config(config: dict[str, Any], voice_name: str | None, agent_name: str
         "piper_model": tts.get("piper_model", ""),
         "piper_config": tts.get("piper_config", ""),
         "piper_speaker": tts.get("piper_speaker", ""),
+        "server_enabled": tts.get("server_enabled", True),
+        "server_url": tts.get("server_url", "http://127.0.0.1:50321"),
     }
 
     specific = voices.get(selected, {}) if isinstance(voices.get(selected, {}), dict) else {}
     base.update(specific)
     return selected, base
+
+
+def speak_piper_server(text: str, voice_name: str, cfg: dict[str, Any]) -> bool:
+    if not bool(cfg.get("server_enabled", True)):
+        return False
+
+    url = str(cfg.get("server_url") or "http://127.0.0.1:50321").rstrip("/") + "/synthesize"
+    payload = json.dumps({"text": text, "voice": voice_name}).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=3) as response:
+            wav_data = response.read()
+    except (OSError, urllib.error.URLError):
+        return False
+
+    with tempfile.NamedTemporaryFile(prefix="zentoo-speak-", suffix=".wav", delete=False) as fh:
+        wav = Path(fh.name)
+        fh.write(wav_data)
+
+    try:
+        subprocess.run(["pw-play", str(wav)], check=True)
+    finally:
+        wav.unlink(missing_ok=True)
+    return True
 
 
 def speak_piper(text: str, cfg: dict[str, Any]) -> None:
@@ -151,6 +185,8 @@ def main() -> int:
         return 0
 
     if resolved_backend == "piper":
+        if speak_piper_server(text, selected_voice, cfg):
+            return 0
         if not have("piper"):
             raise RuntimeError("piper not found; emerge media-sound/piper or use --backend espeak")
         speak_piper(text, cfg)
