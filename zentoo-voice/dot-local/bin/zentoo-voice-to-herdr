@@ -7,4 +7,10 @@ if [[ -n "$agent" ]]; then
 	export ZENTOO_VOICE_AGENT="$agent"
 fi
 
+# Auto-stop after a pause so push-to-talk only needs a start keypress. Pressing
+# the hotkey again still stops manually via OSTT's existing SIGUSR1 path.
+export OSTT_AUTO_STOP_SILENCE_MS="${OSTT_AUTO_STOP_SILENCE_MS:-1200}"
+export OSTT_AUTO_STOP_MIN_MS="${OSTT_AUTO_STOP_MIN_MS:-700}"
+export OSTT_AUTO_STOP_RMS_THRESHOLD="${OSTT_AUTO_STOP_RMS_THRESHOLD:-0.01}"
+
 exec ostt launch -- -p herdr
