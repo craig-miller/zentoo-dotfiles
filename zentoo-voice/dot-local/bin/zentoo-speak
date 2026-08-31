@@ -11,7 +11,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import signal
 import subprocess
 import sys
 import tempfile
@@ -28,10 +27,6 @@ def config_path() -> Path:
     return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zentoo-voice" / "config.toml"
 
 
-def state_dir() -> Path:
-    return Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "zentoo-voice"
-
-
 def load_config() -> dict[str, Any]:
     path = config_path()
     if not path.exists() or tomllib is None:
@@ -46,34 +41,6 @@ def expand(value: Any) -> str:
 
 def have(command: str) -> bool:
     return subprocess.run(["sh", "-c", f"command -v {command} >/dev/null 2>&1"]).returncode == 0
-
-
-def stop_existing() -> None:
-    pid_file = state_dir() / "speak.pid"
-    if not pid_file.exists():
-        return
-    try:
-        pid = int(pid_file.read_text().strip())
-        os.kill(pid, signal.SIGTERM)
-    except Exception:
-        pass
-    try:
-        pid_file.unlink()
-    except FileNotFoundError:
-        pass
-
-
-def write_pid(pid: int) -> None:
-    directory = state_dir()
-    directory.mkdir(parents=True, exist_ok=True)
-    (directory / "speak.pid").write_text(f"{pid}\n")
-
-
-def clear_pid() -> None:
-    try:
-        (state_dir() / "speak.pid").unlink()
-    except FileNotFoundError:
-        pass
 
 
 def voice_config(config: dict[str, Any], voice_name: str | None, agent_name: str | None) -> tuple[str, dict[str, Any]]:
@@ -150,15 +117,9 @@ def main() -> int:
     parser.add_argument("--backend", choices=("auto", "piper", "espeak", "espeak-ng"), help="override configured backend")
     parser.add_argument("--voice", help="named TTS voice from [tts.voices]")
     parser.add_argument("--agent", help="agent name; resolved through [tts.agent_voices]")
-    parser.add_argument("--stop", action="store_true", help="stop current playback before speaking; with no text, only stop")
     parser.add_argument("--json", action="store_true", help="print selected voice/backend metadata instead of speaking")
     parser.add_argument("text", nargs="*")
     args = parser.parse_args()
-
-    if args.stop:
-        stop_existing()
-        if not args.text and sys.stdin.isatty() and not args.json:
-            return 0
 
     text = " ".join(args.text) if args.text else sys.stdin.read()
     text = text.replace("\r", "").strip()
@@ -189,20 +150,16 @@ def main() -> int:
         }, separators=(",", ":")))
         return 0
 
-    write_pid(os.getpid())
-    try:
-        if resolved_backend == "piper":
-            if not have("piper"):
-                raise RuntimeError("piper not found; emerge media-sound/piper or use --backend espeak")
-            speak_piper(text, cfg)
-        elif resolved_backend in ("espeak", "espeak-ng"):
-            if not can_espeak:
-                raise RuntimeError("espeak-ng not found")
-            speak_espeak(text, cfg)
-        else:
-            raise RuntimeError(f"unknown backend: {resolved_backend}")
-    finally:
-        clear_pid()
+    if resolved_backend == "piper":
+        if not have("piper"):
+            raise RuntimeError("piper not found; emerge media-sound/piper or use --backend espeak")
+        speak_piper(text, cfg)
+    elif resolved_backend in ("espeak", "espeak-ng"):
+        if not can_espeak:
+            raise RuntimeError("espeak-ng not found")
+        speak_espeak(text, cfg)
+    else:
+        raise RuntimeError(f"unknown backend: {resolved_backend}")
     return 0
 
 

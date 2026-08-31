@@ -78,7 +78,7 @@ case "$mode" in
 		# so response extraction also waits for a new Pi message id instead of reading
 		# the previous answer.
 		herdr agent wait "$pane_id" --timeout 180000 >/dev/null || true
-		if ! "$response_text_bin" "$pane_id" --after-id "$before_response_id" --wait-ms 180000 | "$speak_bin" --agent "$target" --stop; then
+		if ! "$response_text_bin" "$pane_id" --after-id "$before_response_id" --wait-ms 180000 | "$speak_bin" --agent "$target"; then
 			notify "I sent the question, but couldn't speak the response."
 		fi
 		;;
