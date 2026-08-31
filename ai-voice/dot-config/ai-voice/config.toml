@@ -1,9 +1,9 @@
 [assistant]
 # User-facing assistant identity. The wake phrase and display name are
 # configurable; scripts should not hard-code an assistant name.
-name = "Ananda"
+name = "Carrie"
 wake_phrase = "hey carrie"
-display_name = "Ananda"
+display_name = "Carrie"
 
 # Fallback Herdr agent when no focused agent can be found.
 default_agent = "carrie"
