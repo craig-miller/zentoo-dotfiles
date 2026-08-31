@@ -311,7 +311,7 @@ def main() -> int:
 
     fail(
         "missing voice command",
-        "Please start with ask or tell so I know whether to speak the response.",
+        "Couldn't determine the agent name. Please start with ask name or tell name.",
     )
     return 0
 
