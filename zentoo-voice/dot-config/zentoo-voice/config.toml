@@ -1,0 +1,8 @@
+# Fallback Herdr agent when no focused agent can be found.
+default_agent = "assistant"
+
+# Optional speech/transcription aliases for directed prompts:
+#   tell <alias> <message>
+#   ask <alias> <message>
+[aliases]
+# alice = "assistant"

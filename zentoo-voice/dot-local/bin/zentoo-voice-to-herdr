@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+agent="${1:-}"
+
+if [[ -n "$agent" ]]; then
+	export ZENTOO_VOICE_AGENT="$agent"
+fi
+
+exec ostt launch -- -p herdr

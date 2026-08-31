@@ -1,0 +1,21 @@
+config_version = "0.0.25"
+
+[transcription]
+provider = "whisper"
+model = "small"
+
+[audio]
+# Let Noctalia/PipeWire choose the active microphone.
+device = "default"
+
+# Compact format suitable for speech-to-text services and local models.
+output_format = "mp3 -ab 16k -ar 12000"
+
+[popup]
+# Zentoo's terminal emulator for the push-to-talk popup.
+terminal = "foot"
+
+[process.actions.herdr]
+name = "Send to Herdr agent"
+type = "bash"
+command = "/home/craig/.local/bin/zentoo-voice-prompt-herdr"

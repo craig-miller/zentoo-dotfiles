@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+notify() {
+	local message="$1"
+	if command -v notify-send >/dev/null 2>&1; then
+		notify-send "Zentoo Voice" "$message"
+	else
+		echo "$message" >&2
+	fi
+}
+
+route_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/zentoo-voice-route"
+
+transcript="$(cat)"
+
+if ! command -v herdr >/dev/null 2>&1; then
+	echo "herdr not found in PATH" >&2
+	exit 127
+fi
+if [[ ! -x "$route_bin" ]]; then
+	echo "zentoo-voice-route not found at $route_bin" >&2
+	exit 127
+fi
+if ! command -v jq >/dev/null 2>&1; then
+	echo "jq not found in PATH" >&2
+	exit 127
+fi
+
+route="$(printf '%s' "$transcript" | "$route_bin")"
+route_ok="$(jq -r '.ok' <<<"$route")"
+if [[ "$route_ok" != "true" ]]; then
+	spoken="$(jq -r '.spoken // .error // "Voice routing failed."' <<<"$route")"
+	notify "$spoken"
+	printf '%s\n' "$spoken"
+	exit 0
+fi
+
+pane_id="$(jq -r '.pane_id // empty' <<<"$route")"
+message="$(jq -r '.message // empty' <<<"$route")"
+target="$(jq -r '.target // .pane_id // "agent"' <<<"$route")"
+if [[ -z "$pane_id" || -z "$message" ]]; then
+	notify "Voice routing failed."
+	echo "Invalid voice route: $route" >&2
+	exit 1
+fi
+
+# Herdr's high-level agent prompt path can be ignored when Pi is using vim-style
+# NORMAL mode. Drive the target pane directly: enter insert mode, send the
+# routed prompt, then press Enter.
+herdr pane send-keys "$pane_id" esc i >/dev/null
+herdr pane send-text "$pane_id" "$message" >/dev/null
+herdr pane send-keys "$pane_id" enter >/dev/null
+herdr agent focus "$pane_id" >/dev/null
+
+printf 'Sent to %s: %s\n' "$target" "$message"

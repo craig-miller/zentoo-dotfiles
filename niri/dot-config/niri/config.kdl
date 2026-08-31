@@ -306,6 +306,11 @@ window-rule {
     default-column-width { fixed 900; }
 }
 
+window-rule {
+    match app-id="ostt-popup"
+    open-floating true
+}
+
 debug {
     honor-xdg-activation-with-invalid-serial
 }
@@ -335,6 +340,7 @@ binds {
     Mod+Shift+V { spawn "/home/craig/.local/bin/niri-clipboard-key" "paste"; }
     Mod+X       { spawn "/home/craig/.local/bin/niri-clipboard-key" "cut"; }
     Mod+P       { spawn "foot" "--app-id=pass-picker" "fish" "-c" "pt"; }
+    Mod+M       { spawn "/home/craig/.local/bin/zentoo-voice-to-herdr"; }
     Mod+Shift+E { quit; }
 
     // ── Overview ──────────────────────────────────────

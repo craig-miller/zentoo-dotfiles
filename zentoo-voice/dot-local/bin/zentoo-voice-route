@@ -1,0 +1,227 @@
+#!/usr/bin/env python3
+"""Route an OSTT transcript to a Herdr agent.
+
+Reads the transcript from stdin and prints a compact JSON object:
+  {"ok": true, "target": "assistant", "pane_id": "w1:p1", "message": "...", ...}
+  {"ok": false, "error": "...", "spoken": "...", ...}
+
+Directed grammar:
+  tell <one-word-agent> <message>
+  ask <one-word-agent> <message>
+
+Undirected transcripts route to the focused Herdr agent, then state/config fallbacks.
+"""
+
+from __future__ import annotations
+
+import difflib
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11 fallback is not expected here.
+    tomllib = None
+
+MIN_FUZZY_SCORE = 0.72
+
+
+def norm(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", value.lower())
+
+
+def trim(value: str) -> str:
+    return value.strip(" \t\r\n")
+
+
+def run_json(command: list[str]) -> dict:
+    output = subprocess.check_output(command, text=True)
+    return json.loads(output)
+
+
+def config_path() -> Path:
+    return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zentoo-voice" / "config.toml"
+
+
+def state_path() -> Path:
+    return Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "zentoo-voice" / "current-agent"
+
+
+def load_config() -> dict:
+    path = config_path()
+    if not path.exists() or tomllib is None:
+        return {}
+    with path.open("rb") as fh:
+        return tomllib.load(fh)
+
+
+def default_agent(config: dict) -> str:
+    value = config.get("default_agent")
+    return value if isinstance(value, str) and value else "assistant"
+
+
+def aliases(config: dict) -> dict[str, str]:
+    raw = config.get("aliases", {})
+    if not isinstance(raw, dict):
+        return {}
+    return {norm(str(k)): str(v) for k, v in raw.items() if str(k) and str(v)}
+
+
+def display_name(agent: dict) -> str:
+    if agent.get("name"):
+        return str(agent["name"])
+    cwd = str(agent.get("cwd") or "")
+    if cwd:
+        return Path(cwd).name
+    title = str(agent.get("terminal_title_stripped") or agent.get("terminal_title") or "")
+    if title.startswith("π - "):
+        title = title[4:]
+    return title or str(agent.get("pane_id") or "")
+
+
+def candidates(agent: dict) -> set[str]:
+    values = {
+        str(agent.get("name") or ""),
+        str(agent.get("pane_id") or ""),
+        display_name(agent),
+        Path(str(agent.get("cwd") or "")).name,
+    }
+    title = str(agent.get("terminal_title_stripped") or agent.get("terminal_title") or "")
+    values.add(title)
+    if title.startswith("π - "):
+        values.add(title[4:])
+    return {v for v in values if v}
+
+
+def agent_by_token(agents: list[dict], token: str, config: dict) -> tuple[dict | None, str, float, str]:
+    requested = norm(token)
+    alias_map = aliases(config)
+    if requested in alias_map:
+        token = alias_map[requested]
+        requested = norm(token)
+
+    exact: list[tuple[dict, str]] = []
+    name_index: list[tuple[str, dict, str]] = []
+    for agent in agents:
+        for label in candidates(agent):
+            normalized = norm(label)
+            if not normalized:
+                continue
+            name_index.append((normalized, agent, label))
+            if normalized == requested:
+                exact.append((agent, label))
+
+    if exact:
+        agent, label = exact[0]
+        return agent, label, 1.0, "exact"
+
+    best: tuple[float, dict, str] | None = None
+    for normalized, agent, label in name_index:
+        score = difflib.SequenceMatcher(None, requested, normalized).ratio()
+        # Give prefix-ish matches a small boost for names like "zent" -> "zentoo".
+        if normalized.startswith(requested) or requested.startswith(normalized):
+            score = max(score, 0.84)
+        if best is None or score > best[0]:
+            best = (score, agent, label)
+
+    if best and best[0] >= MIN_FUZZY_SCORE:
+        score, agent, label = best
+        return agent, label, score, "fuzzy"
+
+    return None, "", best[0] if best else 0.0, "none"
+
+
+def focused_agent(agents: list[dict]) -> dict | None:
+    return next((agent for agent in agents if agent.get("focused") is True), None)
+
+
+def agent_by_target(agents: list[dict], target: str) -> dict | None:
+    wanted = norm(target)
+    for agent in agents:
+        if any(norm(label) == wanted for label in candidates(agent)):
+            return agent
+    return None
+
+
+def parse_directed(transcript: str) -> tuple[str, str, str] | None:
+    match = re.match(
+        r"^\s*(tell|ask)\s+([A-Za-z0-9_-]+)\s*[,.;:-]?\s+(.+?)\s*$",
+        transcript,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if not match:
+        return None
+    return match.group(1).lower(), match.group(2), trim(match.group(3))
+
+
+def ok(agent: dict, message: str, *, requested: str = "", match_label: str = "", score: float = 1.0, mode: str = "implicit") -> None:
+    print(json.dumps({
+        "ok": True,
+        "target": display_name(agent),
+        "pane_id": agent.get("pane_id"),
+        "message": message,
+        "requested": requested,
+        "matched": match_label or display_name(agent),
+        "score": round(score, 3),
+        "mode": mode,
+    }, separators=(",", ":")))
+
+
+def fail(message: str, spoken: str) -> None:
+    print(json.dumps({"ok": False, "error": message, "spoken": spoken}, separators=(",", ":")))
+
+
+def main() -> int:
+    transcript = trim(sys.stdin.read())
+    if not transcript:
+        fail("empty transcript", "No transcript received.")
+        return 0
+
+    config = load_config()
+    data = run_json(["herdr", "agent", "list"])
+    agents = data.get("result", {}).get("agents", [])
+
+    directed = parse_directed(transcript)
+    if directed:
+        verb, requested, message = directed
+        agent, label, score, match_kind = agent_by_token(agents, requested, config)
+        if not agent:
+            fail(
+                f"could not resolve directed target {requested!r}",
+                f"I couldn't find an agent named {requested}.",
+            )
+            return 0
+        ok(agent, message, requested=requested, match_label=label, score=score, mode=verb if match_kind == "exact" else f"{verb}-{match_kind}")
+        return 0
+
+    agent = focused_agent(agents)
+    if agent:
+        ok(agent, transcript, mode="focused")
+        return 0
+
+    state = state_path()
+    if state.exists():
+        agent = agent_by_target(agents, trim(state.read_text()))
+        if agent:
+            ok(agent, transcript, mode="state")
+            return 0
+
+    agent = agent_by_target(agents, default_agent(config))
+    if agent:
+        ok(agent, transcript, mode="default")
+        return 0
+
+    fail("no focused/default Herdr agent found", "I couldn't find a Herdr agent to send that to.")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Exception as exc:
+        fail(str(exc), "Voice routing failed.")
+        raise SystemExit(0)
