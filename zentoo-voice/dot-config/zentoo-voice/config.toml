@@ -1,5 +1,5 @@
 # Fallback Herdr agent when no focused agent can be found.
-default_agent = "assistant"
+default_agent = "carrie"
 
 # Optional speech/transcription aliases for directed prompts.
 # The router already tries exact, phonetic, and fuzzy matching; add aliases for
@@ -13,7 +13,7 @@ default_agent = "assistant"
 # "auto" uses the selected Piper voice when piper is installed and the model
 # exists, otherwise falls back to espeak-ng.
 backend = "auto"
-default_voice = "assistant"
+default_voice = "carrie"
 server_enabled = true
 server_url = "http://127.0.0.1:50321"
 espeak_voice = "en-us"
@@ -34,6 +34,6 @@ espeak_voice = "en-us+f3"
 espeak_speed = 170
 
 [tts.agent_voices]
-assistant = "assistant"
+assistant = "carrie"
 carrie = "carrie"
 zentoo = "assistant"
