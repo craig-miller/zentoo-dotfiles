@@ -1,0 +1,170 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+config_file="$config_home/zentoo-voice/config.toml"
+state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
+runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
+
+backend="auto"
+piper_model=""
+piper_config=""
+piper_speaker=""
+espeak_voice="en-us"
+espeak_speed="165"
+
+if [[ -f "$config_file" ]]; then
+  values="$({ python3 - "$config_file" <<'PY'
+from __future__ import annotations
+import sys
+try:
+    import tomllib
+except ModuleNotFoundError:
+    raise SystemExit(0)
+with open(sys.argv[1], 'rb') as fh:
+    data = tomllib.load(fh)
+tts = data.get('tts', {}) if isinstance(data.get('tts', {}), dict) else {}
+for key in ('backend', 'piper_model', 'piper_config', 'piper_speaker', 'espeak_voice', 'espeak_speed'):
+    value = tts.get(key)
+    if value is not None:
+        print(f'{key}={value}')
+PY
+  } || true)"
+  while IFS='=' read -r key value; do
+    case "$key" in
+      backend) backend="$value" ;;
+      piper_model) piper_model="$value" ;;
+      piper_config) piper_config="$value" ;;
+      piper_speaker) piper_speaker="$value" ;;
+      espeak_voice) espeak_voice="$value" ;;
+      espeak_speed) espeak_speed="$value" ;;
+    esac
+  done <<< "$values"
+fi
+
+usage() {
+  cat <<'EOF'
+Usage: zentoo-speak [--backend auto|piper|espeak] [--stop] [text...]
+
+Reads text from arguments or stdin and speaks it locally. Piper is preferred when
+installed and configured; espeak-ng is the no-model fallback.
+EOF
+}
+
+stop_existing=false
+args=()
+while (($#)); do
+  case "$1" in
+    --backend)
+      [[ $# -ge 2 ]] || { echo "zentoo-speak: --backend needs a value" >&2; exit 2; }
+      backend="$2"
+      shift 2
+      ;;
+    --stop)
+      stop_existing=true
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      args+=("$@")
+      break
+      ;;
+    *)
+      args+=("$1")
+      shift
+      ;;
+  esac
+done
+
+pid_file="$state_home/zentoo-voice/speak.pid"
+mkdir -p "$(dirname "$pid_file")"
+
+if [[ "$stop_existing" == true ]]; then
+  if [[ -s "$pid_file" ]]; then
+    old_pid="$(<"$pid_file")"
+    if [[ "$old_pid" =~ ^[0-9]+$ ]] && kill -0 "$old_pid" 2>/dev/null; then
+      kill "$old_pid" 2>/dev/null || true
+    fi
+    rm -f "$pid_file"
+  fi
+  if ((${#args[@]} == 0)); then
+    exit 0
+  fi
+fi
+
+if ((${#args[@]})); then
+  text="${args[*]}"
+else
+  text="$(cat)"
+fi
+
+text="${text//$'\r'/}"
+if [[ -z "${text//[[:space:]]/}" ]]; then
+  exit 0
+fi
+
+speak_with_piper() {
+  if [[ -z "$piper_model" ]]; then
+    echo "zentoo-speak: piper backend requires [tts].piper_model in $config_file" >&2
+    return 1
+  fi
+  if [[ ! -f "$piper_model" ]]; then
+    echo "zentoo-speak: piper model not found: $piper_model" >&2
+    return 1
+  fi
+
+  wav="$runtime_dir/zentoo-speak-$$.wav"
+  trap 'rm -f "$wav"' RETURN
+
+  cmd=(piper --model "$piper_model" --output_file "$wav")
+  if [[ -n "$piper_config" ]]; then
+    cmd+=(--config "$piper_config")
+  fi
+  if [[ -n "$piper_speaker" ]]; then
+    cmd+=(--speaker "$piper_speaker")
+  fi
+
+  printf '%s\n' "$text" | "${cmd[@]}" >/dev/null
+  pw-play "$wav"
+}
+
+speak_with_espeak() {
+  espeak-ng -v "$espeak_voice" -s "$espeak_speed" --stdout "$text" | pw-play --media-role=Speech -
+}
+
+(
+  printf '%s\n' "$$" > "$pid_file"
+  case "$backend" in
+    auto)
+      if command -v piper >/dev/null 2>&1 && [[ -n "$piper_model" && -f "$piper_model" ]]; then
+        speak_with_piper
+      elif command -v espeak-ng >/dev/null 2>&1; then
+        speak_with_espeak
+      else
+        echo "zentoo-speak: no TTS backend available; install media-sound/piper or app-accessibility/espeak-ng" >&2
+        exit 1
+      fi
+      ;;
+    piper)
+      command -v piper >/dev/null 2>&1 || { echo "zentoo-speak: piper not found" >&2; exit 1; }
+      speak_with_piper
+      ;;
+    espeak|espeak-ng)
+      command -v espeak-ng >/dev/null 2>&1 || { echo "zentoo-speak: espeak-ng not found" >&2; exit 1; }
+      speak_with_espeak
+      ;;
+    *)
+      echo "zentoo-speak: unknown backend: $backend" >&2
+      exit 2
+      ;;
+  esac
+) &
+
+pid=$!
+printf '%s\n' "$pid" > "$pid_file"
+wait "$pid"
+rm -f "$pid_file"

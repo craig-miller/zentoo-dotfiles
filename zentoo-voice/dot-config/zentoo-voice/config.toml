@@ -8,3 +8,12 @@ default_agent = "assistant"
 #   ask <alias> <message>
 [aliases]
 # alice = "assistant"
+
+[tts]
+# "auto" uses Piper when piper_model is configured and piper is installed,
+# otherwise falls back to espeak-ng.
+backend = "auto"
+espeak_voice = "en-us"
+espeak_speed = 165
+# piper_model = "/home/craig/.local/share/zentoo-voice/piper/en_US-lessac-medium.onnx"
+# piper_config = "/home/craig/.local/share/zentoo-voice/piper/en_US-lessac-medium.onnx.json"
