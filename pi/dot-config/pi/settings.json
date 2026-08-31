@@ -8,5 +8,6 @@
     "npm:pi-web-access",
     "npm:@0xkahi/pi-vim-keys"
   ],
-  "hideThinkingBlock": false
+  "hideThinkingBlock": false,
+  "tuiMode": "regular"
 }
