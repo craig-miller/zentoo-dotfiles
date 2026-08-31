@@ -42,6 +42,10 @@ pane_id="$(jq -r '.pane_id // empty' <<<"$route")"
 message="$(jq -r '.message // empty' <<<"$route")"
 target="$(jq -r '.target // .pane_id // "agent"' <<<"$route")"
 mode="$(jq -r '.mode // ""' <<<"$route")"
+before_response_id=""
+if [[ "$mode" == "ask" || "$mode" == ask-* ]] && [[ -x "$response_text_bin" ]]; then
+	before_response_id="$({ "$response_text_bin" "$pane_id" --json | jq -r '.message_id // empty'; } 2>/dev/null || true)"
+fi
 if [[ -z "$pane_id" || -z "$message" ]]; then
 	notify "Voice routing failed."
 	echo "Invalid voice route: $route" >&2
@@ -69,15 +73,13 @@ case "$mode" in
 			exit 0
 		fi
 
-		# Wait for the agent turn to settle, then speak the latest recorded Pi answer.
-		# If wait/readback fails, keep the prompt send successful and notify instead of
-		# treating speech as a routing failure.
-		if herdr agent wait "$pane_id" --timeout 180000 >/dev/null; then
-			if ! "$response_text_bin" "$pane_id" | "$speak_bin" --agent "$target" --stop; then
-				notify "I sent the question, but couldn't speak the response."
-			fi
-		else
-			notify "I sent the question, but the agent did not finish in time."
+		# Wait for the agent turn to settle, then speak the next recorded Pi answer.
+		# Herdr can still be idle for a short moment immediately after raw pane input,
+		# so response extraction also waits for a new Pi message id instead of reading
+		# the previous answer.
+		herdr agent wait "$pane_id" --timeout 180000 >/dev/null || true
+		if ! "$response_text_bin" "$pane_id" --after-id "$before_response_id" --wait-ms 180000 | "$speak_bin" --agent "$target" --stop; then
+			notify "I sent the question, but couldn't speak the response."
 		fi
 		;;
 esac

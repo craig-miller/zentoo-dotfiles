@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -129,8 +130,8 @@ def text_parts(content: Any) -> list[str]:
     return parts
 
 
-def latest_response_text(session: Path) -> str:
-    latest = ""
+def latest_response(session: Path) -> dict[str, str]:
+    latest: dict[str, str] = {}
     with session.open("r", encoding="utf-8") as fh:
         for line in fh:
             try:
@@ -144,17 +145,34 @@ def latest_response_text(session: Path) -> str:
                 continue
             text = "\n".join(part for part in text_parts(message.get("content")) if part.strip()).strip()
             if text:
-                latest = text
+                latest = {
+                    "message_id": str(item.get("id") or ""),
+                    "timestamp": str(item.get("timestamp") or ""),
+                    "text": text,
+                }
 
     if not latest:
         raise RuntimeError(f"could not find an assistant text response in {session}")
     return latest
 
 
+def wait_for_response(session: Path, after_id: str, timeout_ms: int) -> dict[str, str]:
+    deadline = time.monotonic() + timeout_ms / 1000
+    while True:
+        latest = latest_response(session)
+        if not after_id or latest.get("message_id") != after_id:
+            return latest
+        if time.monotonic() >= deadline:
+            raise RuntimeError("timed out waiting for a new assistant response")
+        time.sleep(0.5)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("target", nargs="?", help="Herdr agent target; defaults to focused agent")
     parser.add_argument("--json", action="store_true", help="print metadata and text as JSON")
+    parser.add_argument("--after-id", default="", help="wait until the latest assistant response has a different message id")
+    parser.add_argument("--wait-ms", type=int, default=0, help="milliseconds to wait with --after-id")
     args = parser.parse_args()
 
     agent = resolve_agent(args.target)
@@ -165,7 +183,7 @@ def main() -> int:
         raise RuntimeError(f"target {display_name(agent)!r} is not a Pi agent")
 
     session = latest_pi_session_for_cwd(cwd)
-    text = latest_response_text(session)
+    response = wait_for_response(session, args.after_id, args.wait_ms) if args.after_id else latest_response(session)
 
     if args.json:
         print(json.dumps({
@@ -174,10 +192,12 @@ def main() -> int:
             "pane_id": agent.get("pane_id"),
             "cwd": cwd,
             "session": str(session),
-            "text": text,
+            "message_id": response.get("message_id"),
+            "timestamp": response.get("timestamp"),
+            "text": response.get("text", ""),
         }, separators=(",", ":")))
     else:
-        print(text)
+        print(response.get("text", ""))
     return 0
 
 
