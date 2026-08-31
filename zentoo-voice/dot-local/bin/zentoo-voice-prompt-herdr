@@ -11,6 +11,8 @@ notify() {
 }
 
 route_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/zentoo-voice-route"
+response_text_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/zentoo-herdr-agent-response-text"
+speak_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/zentoo-speak"
 
 transcript="$(cat)"
 
@@ -39,6 +41,7 @@ fi
 pane_id="$(jq -r '.pane_id // empty' <<<"$route")"
 message="$(jq -r '.message // empty' <<<"$route")"
 target="$(jq -r '.target // .pane_id // "agent"' <<<"$route")"
+mode="$(jq -r '.mode // ""' <<<"$route")"
 if [[ -z "$pane_id" || -z "$message" ]]; then
 	notify "Voice routing failed."
 	echo "Invalid voice route: $route" >&2
@@ -54,3 +57,27 @@ herdr pane send-keys "$pane_id" enter >/dev/null
 herdr agent focus "$pane_id" >/dev/null
 
 printf 'Sent to %s: %s\n' "$target" "$message"
+
+case "$mode" in
+	ask|ask-*)
+		if [[ ! -x "$response_text_bin" ]]; then
+			notify "I sent the question, but response text extraction is not installed."
+			exit 0
+		fi
+		if [[ ! -x "$speak_bin" ]]; then
+			notify "I sent the question, but speech output is not installed."
+			exit 0
+		fi
+
+		# Wait for the agent turn to settle, then speak the latest recorded Pi answer.
+		# If wait/readback fails, keep the prompt send successful and notify instead of
+		# treating speech as a routing failure.
+		if herdr agent wait "$pane_id" --timeout 180000 >/dev/null; then
+			if ! "$response_text_bin" "$pane_id" | "$speak_bin" --agent "$target" --stop; then
+				notify "I sent the question, but couldn't speak the response."
+			fi
+		else
+			notify "I sent the question, but the agent did not finish in time."
+		fi
+		;;
+esac

@@ -120,7 +120,14 @@ def speak_piper(text: str, cfg: dict[str, Any]) -> None:
             cmd.extend(["--config", config])
         if speaker:
             cmd.extend(["--speaker", speaker])
-        subprocess.run(cmd, input=text + "\n", text=True, check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(
+            cmd,
+            input=text + "\n",
+            text=True,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
         subprocess.run(["pw-play", str(wav)], check=True)
     finally:
         wav.unlink(missing_ok=True)

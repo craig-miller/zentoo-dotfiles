@@ -29,6 +29,11 @@ except ModuleNotFoundError:  # pragma: no cover - Python < 3.11 fallback is not 
 
 MIN_FUZZY_SCORE = 0.72
 PHONETIC_SCORE = 0.86
+FOCUSED_ASK_WORDS = {
+    "what", "whats", "who", "whos", "where", "wheres", "when", "whens",
+    "why", "whys", "how", "hows", "can", "could", "should", "would",
+    "is", "are", "do", "does", "did", "please",
+}
 
 
 def norm(value: str) -> str:
@@ -248,6 +253,10 @@ def main() -> int:
         verb, requested, message = directed
         agent, label, score, match_kind = agent_by_token(agents, requested, config)
         if not agent:
+            focused = focused_agent(agents)
+            if verb == "ask" and focused and norm(requested) in FOCUSED_ASK_WORDS:
+                ok(focused, f"{requested} {message}", requested="", mode="ask-focused")
+                return 0
             fail(
                 f"could not resolve directed target {requested!r}",
                 f"I couldn't find an agent named {requested}.",
