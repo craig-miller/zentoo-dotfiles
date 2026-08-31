@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+"""Print the latest assistant response text for a Herdr-hosted Pi agent.
+
+Usage:
+  zentoo-herdr-agent-response-text            # focused agent
+  zentoo-herdr-agent-response-text carrie     # by pane id, agent name, cwd basename, or title
+
+This intentionally reads Pi's JSONL session log instead of scraping the terminal,
+which keeps the output suitable for later TTS piping.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+
+def norm(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", value.lower())
+
+
+def run_json(command: list[str]) -> dict[str, Any]:
+    output = subprocess.check_output(command, text=True)
+    return json.loads(output)
+
+
+def display_name(agent: dict[str, Any]) -> str:
+    if agent.get("name"):
+        return str(agent["name"])
+    cwd = str(agent.get("cwd") or "")
+    if cwd:
+        return Path(cwd).name
+    title = str(agent.get("terminal_title_stripped") or agent.get("terminal_title") or "")
+    if title.startswith("π - "):
+        title = title[4:]
+    return title or str(agent.get("pane_id") or "")
+
+
+def candidates(agent: dict[str, Any]) -> set[str]:
+    values = {
+        str(agent.get("name") or ""),
+        str(agent.get("pane_id") or ""),
+        display_name(agent),
+        Path(str(agent.get("cwd") or "")).name,
+    }
+    title = str(agent.get("terminal_title_stripped") or agent.get("terminal_title") or "")
+    values.add(title)
+    if title.startswith("π - "):
+        values.add(title[4:])
+    return {value for value in values if value}
+
+
+def resolve_agent(target: str | None) -> dict[str, Any]:
+    data = run_json(["herdr", "agent", "list"])
+    agents = data.get("result", {}).get("agents", [])
+    if not isinstance(agents, list):
+        raise RuntimeError("unexpected herdr agent list output")
+
+    if target is None or target == "--focused":
+        focused = [agent for agent in agents if isinstance(agent, dict) and agent.get("focused") is True]
+        if len(focused) == 1:
+            return focused[0]
+        raise RuntimeError("could not find exactly one focused Herdr agent")
+
+    wanted = norm(target)
+    matches = [
+        agent
+        for agent in agents
+        if isinstance(agent, dict) and any(norm(label) == wanted for label in candidates(agent))
+    ]
+    if len(matches) == 1:
+        return matches[0]
+    if not matches:
+        raise RuntimeError(f"could not find Herdr agent {target!r}")
+    raise RuntimeError(f"Herdr agent target {target!r} is ambiguous")
+
+
+def session_root() -> Path:
+    return Path(os.environ.get("PI_CONFIG_HOME", Path.home() / ".config" / "pi")) / "sessions"
+
+
+def jsonl_session_cwd(path: Path) -> str:
+    with path.open("r", encoding="utf-8") as fh:
+        for line in fh:
+            try:
+                item = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if item.get("type") == "session":
+                return str(item.get("cwd") or "")
+            # The session record should be first, so do not scan an entire huge log.
+            return ""
+    return ""
+
+
+def latest_pi_session_for_cwd(cwd: str) -> Path:
+    root = session_root()
+    if not root.exists():
+        raise RuntimeError(f"Pi sessions directory does not exist: {root}")
+
+    matches: list[Path] = []
+    for path in root.glob("*/*.jsonl"):
+        try:
+            if jsonl_session_cwd(path) == cwd:
+                matches.append(path)
+        except OSError:
+            continue
+
+    if not matches:
+        raise RuntimeError(f"could not find a Pi session log for cwd {cwd!r}")
+    return max(matches, key=lambda path: path.stat().st_mtime)
+
+
+def text_parts(content: Any) -> list[str]:
+    if isinstance(content, str):
+        return [content]
+    if not isinstance(content, list):
+        return []
+    parts: list[str] = []
+    for item in content:
+        if isinstance(item, dict) and item.get("type") == "text" and isinstance(item.get("text"), str):
+            parts.append(item["text"])
+    return parts
+
+
+def latest_response_text(session: Path) -> str:
+    latest = ""
+    with session.open("r", encoding="utf-8") as fh:
+        for line in fh:
+            try:
+                item = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if item.get("type") != "message":
+                continue
+            message = item.get("message")
+            if not isinstance(message, dict) or message.get("role") != "assistant":
+                continue
+            text = "\n".join(part for part in text_parts(message.get("content")) if part.strip()).strip()
+            if text:
+                latest = text
+
+    if not latest:
+        raise RuntimeError(f"could not find an assistant text response in {session}")
+    return latest
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("target", nargs="?", help="Herdr agent target; defaults to focused agent")
+    parser.add_argument("--json", action="store_true", help="print metadata and text as JSON")
+    args = parser.parse_args()
+
+    agent = resolve_agent(args.target)
+    cwd = str(agent.get("cwd") or "")
+    if not cwd:
+        raise RuntimeError("target Herdr agent has no cwd")
+    if str(agent.get("agent") or "") != "pi":
+        raise RuntimeError(f"target {display_name(agent)!r} is not a Pi agent")
+
+    session = latest_pi_session_for_cwd(cwd)
+    text = latest_response_text(session)
+
+    if args.json:
+        print(json.dumps({
+            "ok": True,
+            "target": display_name(agent),
+            "pane_id": agent.get("pane_id"),
+            "cwd": cwd,
+            "session": str(session),
+            "text": text,
+        }, separators=(",", ":")))
+    else:
+        print(text)
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Exception as exc:
+        print(f"zentoo-herdr-agent-response-text: {exc}", file=sys.stderr)
+        raise SystemExit(1)
