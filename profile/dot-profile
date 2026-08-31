@@ -1,0 +1,5 @@
+# Login-session PATH for GUI apps launched by greetd/niri.
+PATH="$HOME/.bun/bin:$PATH"
+PATH="${XDG_BIN_HOME:-$HOME/.local/bin}:$PATH"
+
+export PATH
