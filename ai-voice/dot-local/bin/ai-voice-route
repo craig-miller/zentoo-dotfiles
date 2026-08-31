@@ -9,7 +9,7 @@ Directed grammar:
   tell <one-word-agent> <message>
   ask <one-word-agent> <message>
 
-Undirected transcripts route to the focused Herdr agent, then state/config fallbacks.
+Undirected transcripts fail safely; say "ask" or "tell" to route prompts.
 """
 
 from __future__ import annotations
@@ -309,24 +309,10 @@ def main() -> int:
         ok(agent, message, requested=requested, match_label=label, score=score, mode=verb if match_kind == "exact" else f"{verb}-{match_kind}")
         return 0
 
-    agent = focused_agent(agents)
-    if agent:
-        ok(agent, transcript, mode="focused")
-        return 0
-
-    state = state_path()
-    if state.exists():
-        agent = agent_by_target(agents, trim(state.read_text()))
-        if agent:
-            ok(agent, transcript, mode="state")
-            return 0
-
-    agent = agent_by_target(agents, default_agent(config))
-    if agent:
-        ok(agent, transcript, mode="default")
-        return 0
-
-    fail("no focused/default Herdr agent found", "I couldn't find a Herdr agent to send that to.")
+    fail(
+        "missing voice command",
+        "Please start with ask or tell so I know whether to speak the response.",
+    )
     return 0
 
 
