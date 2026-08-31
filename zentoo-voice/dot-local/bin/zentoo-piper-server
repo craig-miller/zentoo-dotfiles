@@ -10,6 +10,7 @@ Returns WAV bytes.
 from __future__ import annotations
 
 import argparse
+import fcntl
 import io
 import json
 import logging
@@ -25,8 +26,6 @@ try:
     import tomllib
 except ModuleNotFoundError:  # pragma: no cover
     tomllib = None
-
-from piper import PiperVoice, SynthesisConfig
 
 LOG = logging.getLogger("zentoo-piper-server")
 
@@ -77,14 +76,18 @@ class VoiceRegistry:
         if not model or not Path(model).is_file():
             raise RuntimeError(f"Piper model not found for {selected!r}: {model}")
 
+        from piper import PiperVoice
+
         LOG.info("loading Piper voice %s from %s", selected, model)
         voice = PiperVoice.load(Path(model))
         self.cache[selected] = voice
         return voice, settings
 
 
-def wav_bytes(voice: PiperVoice, text: str, settings: dict[str, Any]) -> bytes:
+def wav_bytes(voice: Any, text: str, settings: dict[str, Any]) -> bytes:
     speaker = settings.get("speaker") or settings.get("piper_speaker")
+    from piper import SynthesisConfig
+
     syn_config = SynthesisConfig(
         speaker_id=int(speaker) if speaker not in (None, "") else None,
         length_scale=float(settings["length_scale"]) if "length_scale" in settings else None,
@@ -168,13 +171,23 @@ def main() -> int:
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    registry = VoiceRegistry(load_config())
-    for voice_name in args.preload:
-        registry.get(voice_name)
 
     pid_path = Path(args.pid_file)
     pid_path.parent.mkdir(parents=True, exist_ok=True)
-    pid_path.write_text(f"{os.getpid()}\n")
+    pid_fh = pid_path.open("a+")
+    try:
+        fcntl.flock(pid_fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        LOG.info("another zentoo-piper-server is already running; exiting")
+        return 0
+    pid_fh.seek(0)
+    pid_fh.truncate()
+    pid_fh.write(f"{os.getpid()}\n")
+    pid_fh.flush()
+
+    registry = VoiceRegistry(load_config())
+    for voice_name in args.preload:
+        registry.get(voice_name)
 
     httpd = ThreadingHTTPServer((args.host, args.port), make_handler(registry))
 
@@ -188,6 +201,8 @@ def main() -> int:
         httpd.serve_forever()
     finally:
         pid_path.unlink(missing_ok=True)
+        fcntl.flock(pid_fh.fileno(), fcntl.LOCK_UN)
+        pid_fh.close()
     return 0
 
 
