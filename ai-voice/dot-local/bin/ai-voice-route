@@ -118,6 +118,29 @@ def aliases(config: dict) -> dict[str, str]:
     return {norm(str(k)): str(v) for k, v in raw.items() if str(k) and str(v)}
 
 
+def phrase_corrections(config: dict) -> dict[str, str]:
+    raw = config.get("phrase_corrections", {})
+    if not isinstance(raw, dict):
+        return {}
+    return {str(k): str(v) for k, v in raw.items() if str(k) and str(v)}
+
+
+def apply_phrase_corrections(transcript: str, config: dict) -> tuple[str, str]:
+    normalized_transcript = norm(transcript)
+    for heard, replacement in phrase_corrections(config).items():
+        normalized_heard = norm(heard)
+        if not normalized_heard:
+            continue
+        if normalized_transcript == normalized_heard:
+            return replacement, heard
+        if normalized_transcript.startswith(normalized_heard):
+            match = re.match(rf"^\s*{re.escape(heard)}\b\s*[,.;:-]?\s*(.*)$", transcript, re.IGNORECASE | re.DOTALL)
+            if match:
+                rest = trim(match.group(1))
+                return trim(f"{replacement} {rest}"), heard
+    return transcript, ""
+
+
 def display_name(agent: dict) -> str:
     if agent.get("name"):
         return str(agent["name"])
@@ -239,6 +262,7 @@ def ok(agent: dict, message: str, *, requested: str = "", match_label: str = "",
         "matched": match_label or display_name(agent),
         "score": round(score, 3),
         "mode": mode,
+        **({"correction": os.environ["AI_VOICE_ROUTE_CORRECTION"]} if os.environ.get("AI_VOICE_ROUTE_CORRECTION") else {}),
     }, separators=(",", ":")))
 
 
@@ -253,6 +277,11 @@ def main() -> int:
         return 0
 
     config = load_config()
+    transcript, correction = apply_phrase_corrections(transcript, config)
+    if correction:
+        os.environ["AI_VOICE_ROUTE_CORRECTION"] = correction
+    else:
+        os.environ.pop("AI_VOICE_ROUTE_CORRECTION", None)
     data = run_json(["herdr", "agent", "list"])
     agents = data.get("result", {}).get("agents", [])
 

@@ -16,6 +16,12 @@ default_agent = "carrie"
 [aliases]
 # alice = "assistant"
 
+# Full-phrase STT corrections before grammar parsing. These are for recurring
+# command-prefix mistakes, not agent-name aliases.
+[phrase_corrections]
+"that's scary" = "ask carrie"
+"house kerry" = "ask carrie"
+
 [tts]
 # "auto" uses the selected Piper voice when piper is installed and the model
 # exists, otherwise falls back to espeak-ng.
