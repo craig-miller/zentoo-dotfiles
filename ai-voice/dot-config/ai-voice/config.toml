@@ -22,6 +22,21 @@ default_agent = "carrie"
 # "that's scary" = "ask carrie"
 # "house kerry" = "ask carrie"
 
+[wake]
+enabled = true
+backend = "violawake"
+threshold = 0.80
+confirm_count = 3
+cooldown_ms = 2000
+display_name = "Carrie Wake Listener"
+
+[[wake.words]]
+phrase = "carrie"
+agent = "carrie"
+model = "/home/craig/.local/share/ai-voice/wake/carrie.onnx"
+threshold = 0.80
+confirm_count = 3
+
 [tts]
 # "auto" uses the selected Piper voice when piper is installed and the model
 # exists, otherwise falls back to espeak-ng.

@@ -4,6 +4,9 @@ set -euo pipefail
 agent="${1:-}"
 
 if [[ -n "$agent" ]]; then
+	export AI_VOICE_AGENT="$agent"
+	# Backward compatibility for any older wrappers/actions still looking for the
+	# original environment variable name.
 	export ZENTOO_VOICE_AGENT="$agent"
 fi
 

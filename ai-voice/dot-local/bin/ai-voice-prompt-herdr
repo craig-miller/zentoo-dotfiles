@@ -15,6 +15,15 @@ response_text_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-herdr-agent-response-tex
 speak_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-speak"
 
 transcript="$(cat)"
+forced_agent="${AI_VOICE_AGENT:-${ZENTOO_VOICE_AGENT:-}}"
+if [[ -n "$forced_agent" ]]; then
+	# Wake-word activation selects the agent before command transcription. Treat
+	# the captured utterance as an ask to that agent unless the user explicitly
+	# says ask/tell again.
+	if ! grep -Eiq '^\s*(ask|tell)(\s|[,.;:-])' <<<"$transcript"; then
+		transcript="ask $forced_agent $transcript"
+	fi
+fi
 
 if ! command -v herdr >/dev/null 2>&1; then
 	echo "herdr not found in PATH" >&2

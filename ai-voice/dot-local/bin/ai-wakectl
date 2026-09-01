@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+runtime_dir="${XDG_RUNTIME_DIR:-/tmp}/ai-voice"
+pid_file="$runtime_dir/wake.pid"
+wake_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-wake"
+stdout_log="/tmp/ai-wake.stdout"
+stderr_log="/tmp/ai-wake.stderr"
+
+notify() {
+  local message="$1"
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "AI Wake" "$message" >/dev/null 2>&1 || true
+  fi
+  printf '%s\n' "$message"
+}
+
+running_pid() {
+  [[ -f "$pid_file" ]] || return 1
+  local pid
+  pid="$(cat "$pid_file" 2>/dev/null || true)"
+  [[ -n "$pid" ]] || return 1
+  kill -0 "$pid" 2>/dev/null || return 1
+  printf '%s\n' "$pid"
+}
+
+status() {
+  local pid
+  if pid="$(running_pid)"; then
+    printf 'running pid=%s\n' "$pid"
+  else
+    printf 'stopped\n'
+    return 1
+  fi
+}
+
+start_wake() {
+  mkdir -p "$runtime_dir"
+  if running_pid >/dev/null; then
+    notify "Wake listener is already running."
+    return 0
+  fi
+  if [[ ! -x "$wake_bin" ]]; then
+    echo "ai-wake not found at $wake_bin" >&2
+    return 1
+  fi
+  AI_WAKE_FORCE=1 nohup "$wake_bin" >"$stdout_log" 2>"$stderr_log" &
+  sleep 1
+  if running_pid >/dev/null; then
+    notify "Wake listener started."
+  else
+    notify "Wake listener failed to start. See $stderr_log."
+    return 1
+  fi
+}
+
+stop_wake() {
+  local pid
+  if ! pid="$(running_pid)"; then
+    notify "Wake listener is already stopped."
+    rm -f "$pid_file"
+    return 0
+  fi
+  kill "$pid" 2>/dev/null || true
+  for _ in $(seq 1 20); do
+    if ! kill -0 "$pid" 2>/dev/null; then
+      rm -f "$pid_file"
+      notify "Wake listener stopped."
+      return 0
+    fi
+    sleep 0.1
+  done
+  kill -9 "$pid" 2>/dev/null || true
+  rm -f "$pid_file"
+  notify "Wake listener stopped."
+}
+
+usage() {
+  cat <<EOF
+Usage: ai-wakectl COMMAND
+
+Commands:
+  status   Show whether ai-wake is running
+  on       Start ai-wake
+  off      Stop ai-wake
+  toggle   Toggle ai-wake
+  restart  Restart ai-wake
+EOF
+}
+
+cmd="${1:-status}"
+case "$cmd" in
+  status) status ;;
+  on|start) start_wake ;;
+  off|stop) stop_wake ;;
+  toggle)
+    if running_pid >/dev/null; then stop_wake; else start_wake; fi
+    ;;
+  restart)
+    stop_wake
+    start_wake
+    ;;
+  -h|--help|help) usage ;;
+  *) echo "Unknown command: $cmd" >&2; usage >&2; exit 2 ;;
+esac

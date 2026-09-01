@@ -341,6 +341,7 @@ binds {
     Mod+X       { spawn "/home/craig/.local/bin/niri-clipboard-key" "cut"; }
     Mod+P       { spawn "foot" "--app-id=pass-picker" "fish" "-c" "pt"; }
     Mod+A       { spawn "/home/craig/.local/bin/ai-voice-to-herdr"; }
+    Mod+M       { spawn "/home/craig/.local/bin/ai-wakectl" "toggle"; }
     Mod+Shift+E { quit; }
 
     // ── Overview ──────────────────────────────────────

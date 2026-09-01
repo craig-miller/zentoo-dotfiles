@@ -1,0 +1,188 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+agent=""
+model=""
+threshold=""
+confirm_count=""
+cooldown=""
+display_name=""
+venv="${VIOLAWAKE_VENV:-/tmp/violawake-console-venv311}"
+voice_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-voice-to-herdr"
+config_file="${XDG_CONFIG_HOME:-$HOME/.config}/ai-voice/config.toml"
+runtime_dir="${XDG_RUNTIME_DIR:-/tmp}/ai-voice"
+log_file="${AI_WAKE_LOG:-/tmp/ai-wake.log}"
+
+usage() {
+  cat <<EOF
+Usage: ai-wake [options]
+
+Listen for configured ViolaWake model(s) and launch ai-voice-to-herdr for the
+selected agent.
+
+Options:
+  --agent NAME       Agent to route post-wake speech to
+  --model PATH       ONNX wake model
+  --threshold NUM    Detection threshold
+  --confirm-count N  Consecutive above-threshold frames required
+  --cooldown SEC     Seconds between wake triggers
+  --display-name STR PipeWire/Noctalia stream name
+  --venv PATH        ViolaWake venv (default: $venv)
+  --config PATH      Config file (default: $config_file)
+  -h, --help         Show this help
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --agent) agent="$2"; shift 2 ;;
+    --model) model="$2"; shift 2 ;;
+    --threshold) threshold="$2"; shift 2 ;;
+    --confirm-count) confirm_count="$2"; shift 2 ;;
+    --cooldown) cooldown="$2"; shift 2 ;;
+    --display-name) display_name="$2"; shift 2 ;;
+    --venv) venv="$2"; shift 2 ;;
+    --config) config_file="$2"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+mkdir -p "$runtime_dir"
+exec 9>"$runtime_dir/wake.lock"
+if ! flock -n 9; then
+  echo "another ai-wake is already running" >&2
+  exit 0
+fi
+printf '%s\n' "$$" >"$runtime_dir/wake.pid"
+trap 'rm -f "$runtime_dir/wake.pid"' EXIT
+
+if [[ ! -x "$venv/bin/python" ]]; then
+  echo "ViolaWake venv not found: $venv" >&2
+  exit 1
+fi
+if [[ ! -x "$voice_bin" ]]; then
+  echo "ai-voice-to-herdr not found: $voice_bin" >&2
+  exit 1
+fi
+
+exec "$venv/bin/python" - \
+  "$config_file" "$agent" "$model" "$threshold" "$confirm_count" "$cooldown" "$display_name" "$voice_bin" "$log_file" <<'PY'
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover
+    tomllib = None
+
+from violawake_sdk import WakeDetector
+
+config_file = Path(sys.argv[1])
+arg_agent, arg_model, arg_threshold, arg_confirm, arg_cooldown, arg_display = sys.argv[2:8]
+voice_bin = sys.argv[8]
+log_file = Path(sys.argv[9])
+
+
+def load_config() -> dict:
+    if tomllib is None or not config_file.exists():
+        return {}
+    with config_file.open("rb") as fh:
+        return tomllib.load(fh)
+
+
+def expand_path(value: str) -> str:
+    return os.path.expandvars(os.path.expanduser(value))
+
+
+def log(message: str) -> None:
+    line = f"{time.strftime('%Y-%m-%d %H:%M:%S')} {message}"
+    print(line, flush=True)
+    with log_file.open("a", encoding="utf-8") as fh:
+        fh.write(line + "\n")
+
+
+config = load_config()
+wake = config.get("wake", {}) if isinstance(config.get("wake", {}), dict) else {}
+assistant = config.get("assistant", {}) if isinstance(config.get("assistant", {}), dict) else {}
+
+if not os.environ.get("AI_WAKE_FORCE") and wake.get("enabled") is False:
+    log("wake listener disabled in config; exiting")
+    raise SystemExit(0)
+
+words = wake.get("words")
+word: dict = {}
+if isinstance(words, list) and words and isinstance(words[0], dict):
+    word = words[0]
+
+agent = arg_agent or str(word.get("agent") or assistant.get("default_agent") or config.get("default_agent") or "carrie")
+model = arg_model or str(word.get("model") or wake.get("model") or f"~/.local/share/ai-voice/wake/{agent}.onnx")
+threshold = float(arg_threshold or word.get("threshold") or wake.get("threshold") or 0.80)
+confirm_count = int(arg_confirm or word.get("confirm_count") or wake.get("confirm_count") or 3)
+cooldown = float(arg_cooldown or word.get("cooldown_s") or wake.get("cooldown_s") or (float(wake.get("cooldown_ms", 2000)) / 1000.0))
+display_name = arg_display or str(word.get("display_name") or wake.get("display_name") or assistant.get("display_name") or "AI Wake Listener")
+model = expand_path(model)
+
+if not Path(model).is_file():
+    raise SystemExit(f"Wake model not found: {model}")
+
+rate = 16000
+frame_samples = 320
+frame_bytes = frame_samples * 2
+last_wake = 0.0
+above = 0
+max_score = 0.0
+safe_node_name = "ai-voice.wake"
+props = f"application.name={display_name},media.name={display_name},node.name={safe_node_name}"
+cmd = [
+    "pw-record",
+    "--rate", str(rate),
+    "--channels", "1",
+    "--format", "s16",
+    "--raw",
+    "--media-type", "Audio",
+    "--media-category", "Capture",
+    "--media-role", "Communication",
+    "--properties", props,
+    "-",
+]
+
+log(
+    f"starting ai-wake agent={agent} model={model} threshold={threshold} "
+    f"confirm_count={confirm_count} cooldown={cooldown}s display_name={display_name!r}"
+)
+proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+try:
+    with WakeDetector(model=model, threshold=threshold, confirm_count=confirm_count, backend="onnx") as detector:
+        while True:
+            data = proc.stdout.read(frame_bytes) if proc.stdout else b""
+            if len(data) < frame_bytes:
+                log("audio stream ended")
+                break
+            score = detector.process(data)
+            max_score = max(max_score, score)
+            if score >= threshold:
+                above += 1
+            else:
+                above = 0
+            now = time.monotonic()
+            if above >= confirm_count and now - last_wake >= cooldown:
+                above = 0
+                last_wake = now
+                detector.reset_cooldown()
+                log(f"wake detected agent={agent} score={score:.3f} max={max_score:.3f}; launching voice prompt")
+                subprocess.Popen([voice_bin, agent])
+except KeyboardInterrupt:
+    log("stopping ai-wake")
+finally:
+    proc.terminate()
+    try:
+        proc.wait(timeout=2)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+PY
