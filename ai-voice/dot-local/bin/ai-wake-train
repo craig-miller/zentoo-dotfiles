@@ -20,6 +20,7 @@ duration="1.5"
 delay="2"
 epochs="80"
 min_rms="50"
+keep_raw="false"
 venv="${VIOLAWAKE_VENV:-/tmp/violawake-console-venv311}"
 base_dir="${XDG_DATA_HOME:-$HOME/.local/share}/ai-voice/wake"
 
@@ -37,13 +38,14 @@ Options:
   --delay SEC        Countdown before each recording (default: 2)
   --epochs N         ViolaWake training epochs (default: 80)
   --min-rms NUM      Reject clips below this RMS level (default: 50)
+  --keep-raw         Keep untrimmed recordings for debugging (default: delete after trim)
   --venv PATH        ViolaWake training venv (default: /tmp/violawake-console-venv311)
   -h, --help         Show this help
 
 Output:
   ${base_dir}/<agent>.onnx
   ${base_dir}/training/<agent>/<timestamp>/positives/*.wav
-  ${base_dir}/training/<agent>/<timestamp>/positives-raw/*.wav
+  ${base_dir}/training/<agent>/<timestamp>/positives-raw/*.wav  (only with --keep-raw)
 EOF
 }
 
@@ -56,6 +58,7 @@ while [[ $# -gt 0 ]]; do
     --delay) delay="$2"; shift 2 ;;
     --epochs) epochs="$2"; shift 2 ;;
     --min-rms) min_rms="$2"; shift 2 ;;
+    --keep-raw) keep_raw="true"; shift ;;
     --venv) venv="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
@@ -95,7 +98,7 @@ Wake-word training
   min RMS:    $min_rms
   output:     $output_model
   positives:  $positives_dir
-  raw audio:  $raw_positives_dir
+  raw audio:  $raw_positives_dir ($([[ "$keep_raw" == "true" ]] && echo "kept" || echo "deleted after trim"))
 
 For each sample, say only: $phrase
 Use varied tone/distance, but keep each clip short and clean.
@@ -198,6 +201,9 @@ import sys
 raise SystemExit(0 if float(sys.argv[1]) >= float(sys.argv[2]) else 1)
 PY
   then
+    if [[ "$keep_raw" != "true" ]]; then
+      rm -f "$raw_file"
+    fi
     if [[ "$record_rc" -ne 0 ]]; then
       echo "Saved $file (raw RMS $rms, peak $peak; trimmed ${trimmed_seconds}s, RMS $trimmed_rms; pw-record returned $record_rc after writing the file)"
     else
