@@ -5,7 +5,7 @@ model="${XDG_DATA_HOME:-$HOME/.local/share}/ai-voice/wake/carrie.onnx"
 threshold="0.80"
 confirm_count="3"
 seconds="20"
-venv="${VIOLAWAKE_VENV:-/tmp/violawake-console-venv311}"
+venv="${VIOLAWAKE_VENV:-}"
 
 usage() {
   cat <<EOF
@@ -18,7 +18,7 @@ Options:
   --threshold NUM    Detection threshold (default: $threshold)
   --confirm-count N  Consecutive above-threshold frames required (default: $confirm_count)
   --seconds N        Seconds to listen (default: $seconds; 0 = forever)
-  --venv PATH        ViolaWake venv (default: $venv)
+  --venv PATH        ViolaWake venv fallback (default: VIOLAWAKE_VENV, if set)
   -h, --help         Show this help
 EOF
 }
@@ -39,12 +39,21 @@ if [[ ! -f "$model" ]]; then
   echo "Wake model not found: $model" >&2
   exit 1
 fi
-if [[ ! -x "$venv/bin/python" ]]; then
-  echo "ViolaWake venv not found: $venv" >&2
-  exit 1
+python_bin="${VIOLAWAKE_PYTHON:-}"
+if [[ -z "$python_bin" ]]; then
+  if python3 -c 'import violawake_sdk' >/dev/null 2>&1; then
+    python_bin="python3"
+  elif [[ -n "$venv" && -x "$venv/bin/python" ]]; then
+    python_bin="$venv/bin/python"
+  elif [[ -x "/tmp/violawake-console-venv311/bin/python" ]]; then
+    python_bin="/tmp/violawake-console-venv311/bin/python"
+  else
+    echo "ViolaWake is not available. Install dev-python/violawake or set VIOLAWAKE_VENV/VIOLAWAKE_PYTHON." >&2
+    exit 1
+  fi
 fi
 
-exec "$venv/bin/python" - "$model" "$threshold" "$confirm_count" "$seconds" <<'PY'
+exec "$python_bin" - "$model" "$threshold" "$confirm_count" "$seconds" <<'PY'
 import subprocess
 import sys
 import time

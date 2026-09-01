@@ -21,7 +21,7 @@ delay="2"
 epochs="80"
 min_rms="50"
 keep_raw="false"
-venv="${VIOLAWAKE_VENV:-/tmp/violawake-console-venv311}"
+venv="${VIOLAWAKE_VENV:-}"
 base_dir="${XDG_DATA_HOME:-$HOME/.local/share}/ai-voice/wake"
 
 usage() {
@@ -39,7 +39,7 @@ Options:
   --epochs N         ViolaWake training epochs (default: 80)
   --min-rms NUM      Reject clips below this RMS level (default: 50)
   --keep-raw         Keep untrimmed recordings for debugging (default: delete after trim)
-  --venv PATH        ViolaWake training venv (default: /tmp/violawake-console-venv311)
+  --venv PATH        ViolaWake training venv fallback (default: VIOLAWAKE_VENV, if set)
   -h, --help         Show this help
 
 Output:
@@ -65,10 +65,18 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ ! -x "$venv/bin/violawake-train" ]]; then
-  echo "violawake-train not found at $venv/bin/violawake-train" >&2
-  echo "Run the ViolaWake training venv setup first." >&2
-  exit 1
+train_bin="${VIOLAWAKE_TRAIN_BIN:-}"
+if [[ -z "$train_bin" ]]; then
+  if command -v violawake-train >/dev/null 2>&1; then
+    train_bin="$(command -v violawake-train)"
+  elif [[ -n "$venv" && -x "$venv/bin/violawake-train" ]]; then
+    train_bin="$venv/bin/violawake-train"
+  elif [[ -x "/tmp/violawake-console-venv311/bin/violawake-train" ]]; then
+    train_bin="/tmp/violawake-console-venv311/bin/violawake-train"
+  else
+    echo "violawake-train not found. Install ViolaWake training deps or set VIOLAWAKE_VENV/VIOLAWAKE_TRAIN_BIN." >&2
+    exit 1
+  fi
 fi
 
 if ! command -v pw-record >/dev/null 2>&1; then
@@ -221,7 +229,7 @@ cat <<EOF
 Recording complete. Training ViolaWake model...
 EOF
 
-"$venv/bin/violawake-train" \
+"$train_bin" \
   --word "$phrase" \
   --positives "$positives_dir" \
   --output "$train_model" \
