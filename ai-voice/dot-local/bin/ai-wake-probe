@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+model="${XDG_DATA_HOME:-$HOME/.local/share}/ai-voice/wake/carrie.onnx"
+threshold="0.80"
+confirm_count="3"
+seconds="20"
+venv="${VIOLAWAKE_VENV:-/tmp/violawake-console-venv311}"
+
+usage() {
+  cat <<EOF
+Usage: ai-wake-probe [options]
+
+Listen to the default PipeWire microphone and print ViolaWake scores/detections.
+
+Options:
+  --model PATH       ONNX wake model (default: $model)
+  --threshold NUM    Detection threshold (default: $threshold)
+  --confirm-count N  Consecutive above-threshold frames required (default: $confirm_count)
+  --seconds N        Seconds to listen (default: $seconds; 0 = forever)
+  --venv PATH        ViolaWake venv (default: $venv)
+  -h, --help         Show this help
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --model) model="$2"; shift 2 ;;
+    --threshold) threshold="$2"; shift 2 ;;
+    --confirm-count) confirm_count="$2"; shift 2 ;;
+    --seconds) seconds="$2"; shift 2 ;;
+    --venv) venv="$2"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+if [[ ! -f "$model" ]]; then
+  echo "Wake model not found: $model" >&2
+  exit 1
+fi
+if [[ ! -x "$venv/bin/python" ]]; then
+  echo "ViolaWake venv not found: $venv" >&2
+  exit 1
+fi
+
+exec "$venv/bin/python" - "$model" "$threshold" "$confirm_count" "$seconds" <<'PY'
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+from violawake_sdk import WakeDetector
+
+model = sys.argv[1]
+threshold = float(sys.argv[2])
+confirm_count = int(sys.argv[3])
+seconds = float(sys.argv[4])
+rate = 16000
+frame_samples = 320
+frame_bytes = frame_samples * 2
+sample_count = int(seconds * rate) if seconds > 0 else None
+
+cmd = [
+    "pw-record",
+    "--rate", str(rate),
+    "--channels", "1",
+    "--format", "s16",
+    "--raw",
+    "--media-type", "Audio",
+    "--media-category", "Capture",
+    "--media-role", "Communication",
+    "--properties", "application.name=AI Wake Probe,media.name=AI Wake Probe,node.name=ai-voice.wake-probe",
+]
+if sample_count:
+    cmd += ["--sample-count", str(sample_count)]
+cmd.append("-")
+
+print(f"model={model}")
+print(f"threshold={threshold} confirm_count={confirm_count} seconds={seconds:g}")
+print("Say the wake phrase. Ctrl+C to stop.")
+
+proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+frames = detections = above = 0
+max_score = 0.0
+start = time.monotonic()
+try:
+    with WakeDetector(model=model, threshold=threshold, confirm_count=confirm_count, backend="onnx") as detector:
+        while True:
+            data = proc.stdout.read(frame_bytes) if proc.stdout else b""
+            if len(data) < frame_bytes:
+                break
+            frames += 1
+            score = detector.process(data)
+            max_score = max(max_score, score)
+            if score >= threshold:
+                above += 1
+            else:
+                above = 0
+            if above >= confirm_count:
+                detections += 1
+                above = 0
+                detector.reset_cooldown()
+                print(f"DETECTED t={frames * 0.02:.2f}s score={score:.3f}", flush=True)
+            elif frames % 25 == 0:
+                print(f"t={frames * 0.02:.1f}s score={score:.3f} max={max_score:.3f} above={above}", flush=True)
+except KeyboardInterrupt:
+    pass
+finally:
+    proc.terminate()
+    try:
+        proc.wait(timeout=2)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+
+elapsed = time.monotonic() - start
+print(f"summary frames={frames} detections={detections} max_score={max_score:.3f} elapsed={elapsed:.1f}s")
+PY

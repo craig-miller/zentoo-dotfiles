@@ -1,0 +1,238 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+on_error() {
+  local rc=$?
+  echo
+  echo "ai-wake-train failed with exit code $rc" >&2
+  if [[ -t 0 ]]; then
+    echo "Press Enter to close." >&2
+    read -r _ || true
+  fi
+  exit "$rc"
+}
+trap on_error ERR
+
+agent="carrie"
+phrase="carrie"
+count=10
+duration="1.5"
+delay="2"
+epochs="80"
+min_rms="50"
+venv="${VIOLAWAKE_VENV:-/tmp/violawake-console-venv311}"
+base_dir="${XDG_DATA_HOME:-$HOME/.local/share}/ai-voice/wake"
+
+usage() {
+  cat <<EOF
+Usage: ai-wake-train [options]
+
+Record wake-word samples with PipeWire and train a ViolaWake ONNX model.
+
+Options:
+  --agent NAME       Agent/model name (default: carrie)
+  --phrase PHRASE    Phrase to say for each sample (default: carrie)
+  --count N          Number of positive samples to record (default: 10)
+  --duration SEC     Seconds per recording (default: 1.5)
+  --delay SEC        Countdown before each recording (default: 2)
+  --epochs N         ViolaWake training epochs (default: 80)
+  --min-rms NUM      Reject clips below this RMS level (default: 50)
+  --venv PATH        ViolaWake training venv (default: /tmp/violawake-console-venv311)
+  -h, --help         Show this help
+
+Output:
+  ${base_dir}/<agent>.onnx
+  ${base_dir}/training/<agent>/<timestamp>/positives/*.wav
+  ${base_dir}/training/<agent>/<timestamp>/positives-raw/*.wav
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --agent) agent="$2"; shift 2 ;;
+    --phrase) phrase="$2"; shift 2 ;;
+    --count) count="$2"; shift 2 ;;
+    --duration) duration="$2"; shift 2 ;;
+    --delay) delay="$2"; shift 2 ;;
+    --epochs) epochs="$2"; shift 2 ;;
+    --min-rms) min_rms="$2"; shift 2 ;;
+    --venv) venv="$2"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+if [[ ! -x "$venv/bin/violawake-train" ]]; then
+  echo "violawake-train not found at $venv/bin/violawake-train" >&2
+  echo "Run the ViolaWake training venv setup first." >&2
+  exit 1
+fi
+
+if ! command -v pw-record >/dev/null 2>&1; then
+  echo "pw-record is required but was not found." >&2
+  exit 1
+fi
+
+sample_rate=16000
+sample_count=$(python3 - <<PY
+print(int(float("$duration") * $sample_rate))
+PY
+)
+timestamp=$(date +%Y%m%d-%H%M%S)
+train_dir="$base_dir/training/$agent/$timestamp"
+positives_dir="$train_dir/positives"
+raw_positives_dir="$train_dir/positives-raw"
+output_model="$base_dir/$agent.onnx"
+train_model="$train_dir/$agent.onnx"
+mkdir -p "$positives_dir" "$raw_positives_dir" "$base_dir"
+
+cat <<EOF
+Wake-word training
+  agent:      $agent
+  phrase:     $phrase
+  samples:    $count
+  duration:   ${duration}s
+  min RMS:    $min_rms
+  output:     $output_model
+  positives:  $positives_dir
+  raw audio:  $raw_positives_dir
+
+For each sample, say only: $phrase
+Use varied tone/distance, but keep each clip short and clean.
+Press Enter to begin, or Ctrl+C to cancel.
+EOF
+read -r _
+
+i=1
+while [[ "$i" -le "$count" ]]; do
+  printf '\n[%02d/%02d] Get ready' "$i" "$count"
+  python3 - <<PY
+import time
+for n in range(int(float("$delay")), 0, -1):
+    print(f" {n}...", end="", flush=True)
+    time.sleep(1)
+print()
+PY
+  printf "SAY '%s' NOW\n" "$phrase"
+  raw_file="$raw_positives_dir/sample_$(printf '%04d' "$i").wav"
+  file="$positives_dir/sample_$(printf '%04d' "$i").wav"
+  trap - ERR
+  set +e
+  pw-record \
+    --rate "$sample_rate" \
+    --channels 1 \
+    --format s16 \
+    --media-type Audio \
+    --media-category Capture \
+    --media-role Communication \
+    --properties "application.name=AI Wake Trainer,media.name=AI Wake Trainer,node.name=ai-voice.wake-trainer" \
+    --sample-count "$sample_count" \
+    "$raw_file"
+  record_rc=$?
+  set -e
+  trap on_error ERR
+  if [[ ! -s "$raw_file" ]]; then
+    echo "Recording failed for $raw_file (pw-record exit $record_rc)" >&2
+    exit 1
+  fi
+  read -r rms peak trimmed_seconds trimmed_rms < <(python3 - "$raw_file" "$file" <<'PY'
+import sys
+import wave
+from pathlib import Path
+import numpy as np
+
+src = Path(sys.argv[1])
+dst = Path(sys.argv[2])
+sample_rate = 16_000
+window = 320  # 20ms
+pad = int(0.12 * sample_rate)
+min_len = int(0.45 * sample_rate)
+
+with wave.open(str(src), "rb") as wf:
+    samples = np.frombuffer(wf.readframes(wf.getnframes()), dtype=np.int16)
+
+if samples.size == 0:
+    print("0 0 0.00 0.0")
+    raise SystemExit(0)
+
+samples_f = samples.astype(np.float32)
+rms = float(np.sqrt(np.mean(samples_f * samples_f)))
+peak = int(np.max(np.abs(samples)))
+
+window_rms = []
+for start in range(0, max(1, samples.size - window + 1), window):
+    chunk = samples[start : start + window].astype(np.float32)
+    if chunk.size:
+        window_rms.append(float(np.sqrt(np.mean(chunk * chunk))))
+
+window_peak = max(window_rms) if window_rms else 0.0
+threshold = max(80.0, window_peak * 0.18)
+active = [idx for idx, value in enumerate(window_rms) if value >= threshold]
+if not active:
+    start = 0
+    end = samples.size
+else:
+    start = max(0, active[0] * window - pad)
+    end = min(samples.size, (active[-1] + 1) * window + pad)
+    if end - start < min_len:
+        middle = (start + end) // 2
+        start = max(0, middle - min_len // 2)
+        end = min(samples.size, start + min_len)
+        start = max(0, end - min_len)
+
+trimmed = samples[start:end]
+dst.parent.mkdir(parents=True, exist_ok=True)
+with wave.open(str(dst), "wb") as wf:
+    wf.setnchannels(1)
+    wf.setsampwidth(2)
+    wf.setframerate(sample_rate)
+    wf.writeframes(trimmed.tobytes())
+
+trimmed_f = trimmed.astype(np.float32)
+trimmed_rms = float(np.sqrt(np.mean(trimmed_f * trimmed_f))) if trimmed_f.size else 0.0
+print(f"{rms:.1f} {peak} {trimmed.size / sample_rate:.2f} {trimmed_rms:.1f}")
+PY
+)
+  if python3 - "$rms" "$min_rms" <<'PY'
+import sys
+raise SystemExit(0 if float(sys.argv[1]) >= float(sys.argv[2]) else 1)
+PY
+  then
+    if [[ "$record_rc" -ne 0 ]]; then
+      echo "Saved $file (raw RMS $rms, peak $peak; trimmed ${trimmed_seconds}s, RMS $trimmed_rms; pw-record returned $record_rc after writing the file)"
+    else
+      echo "Saved $file (raw RMS $rms, peak $peak; trimmed ${trimmed_seconds}s, RMS $trimmed_rms)"
+    fi
+    i=$((i + 1))
+  else
+    echo "Rejected silent/quiet clip (RMS $rms, peak $peak; minimum RMS $min_rms). Check microphone and retrying sample $i." >&2
+    rm -f "$file" "$raw_file"
+  fi
+done
+
+cat <<EOF
+
+Recording complete. Training ViolaWake model...
+EOF
+
+"$venv/bin/violawake-train" \
+  --word "$phrase" \
+  --positives "$positives_dir" \
+  --output "$train_model" \
+  --epochs "$epochs"
+
+cp "$train_model" "$output_model"
+config_src="${train_model%.onnx}.config.json"
+if [[ -f "$config_src" ]]; then
+  cp "$config_src" "${output_model%.onnx}.config.json"
+fi
+
+cat <<EOF
+
+Done.
+Model: $output_model
+Samples: $positives_dir
+
+Next test command:
+  ai-wake-probe --model '$output_model'
+EOF
