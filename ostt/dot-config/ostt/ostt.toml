@@ -12,7 +12,7 @@ device = "default"
 output_format = "mp3 -ab 16k -ar 12000"
 
 # Use a fixed meter reference so ambient room noise stays visually quiet.
-reference_level_db = -12
+reference_level_db = -14
 
 [popup]
 # Zentoo's terminal emulator for the push-to-talk popup.
