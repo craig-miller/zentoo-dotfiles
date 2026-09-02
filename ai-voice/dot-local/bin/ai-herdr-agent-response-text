@@ -167,6 +167,32 @@ def wait_for_response(session: Path, after_id: str, timeout_ms: int) -> dict[str
         time.sleep(0.5)
 
 
+def wait_for_response_for_cwd(cwd: str, after_id: str, timeout_ms: int) -> tuple[Path, dict[str, str]]:
+    """Wait for a new assistant response, re-resolving the Pi session file.
+
+    Voice wake may send /new immediately before the prompt, which creates a new
+    Pi JSONL file asynchronously. If we bind to the latest session file too early,
+    we can accidentally watch the old inactive file forever. Re-resolving during
+    the wait lets the helper follow the pane into the new session.
+    """
+    deadline = time.monotonic() + timeout_ms / 1000
+    last_error = ""
+    while True:
+        try:
+            session = latest_pi_session_for_cwd(cwd)
+            latest = latest_response(session)
+            if not after_id or latest.get("message_id") != after_id:
+                return session, latest
+        except RuntimeError as exc:
+            # A just-created session may not have an assistant message yet.
+            last_error = str(exc)
+
+        if time.monotonic() >= deadline:
+            detail = f": {last_error}" if last_error else ""
+            raise RuntimeError(f"timed out waiting for a new assistant response{detail}")
+        time.sleep(0.5)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("target", nargs="?", help="Herdr agent target; defaults to focused agent")
@@ -182,8 +208,11 @@ def main() -> int:
     if str(agent.get("agent") or "") != "pi":
         raise RuntimeError(f"target {display_name(agent)!r} is not a Pi agent")
 
-    session = latest_pi_session_for_cwd(cwd)
-    response = wait_for_response(session, args.after_id, args.wait_ms) if args.after_id else latest_response(session)
+    if args.after_id and args.wait_ms:
+        session, response = wait_for_response_for_cwd(cwd, args.after_id, args.wait_ms)
+    else:
+        session = latest_pi_session_for_cwd(cwd)
+        response = latest_response(session)
 
     if args.json:
         print(json.dumps({
