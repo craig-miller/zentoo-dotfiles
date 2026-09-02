@@ -57,6 +57,8 @@ def usage() -> None:
         "  is-active <agent>\n"
         "  activate <agent> [pane_id]\n"
         "  deactivate <agent>\n"
+        "  deactivate-last\n"
+        "  last\n"
         "  list\n",
         file=sys.stderr,
     )
@@ -81,6 +83,30 @@ def main(argv: list[str]) -> int:
             print(json.dumps(data, sort_keys=True, separators=(",", ":")))
             return 0
 
+        if command == "last":
+            last_agent = data.get("last_agent")
+            if isinstance(last_agent, str) and last_agent:
+                print(json.dumps({"ok": True, "agent": last_agent}, sort_keys=True, separators=(",", ":")))
+                return 0
+            print(json.dumps({"ok": False, "error": "no last agent"}, sort_keys=True, separators=(",", ":")))
+            return 1
+
+        if command == "deactivate-last":
+            last_agent = data.get("last_agent")
+            if not isinstance(last_agent, str) or not last_agent:
+                print(json.dumps({"ok": False, "error": "no last agent"}, sort_keys=True, separators=(",", ":")))
+                return 1
+            last_entry = agents.setdefault(last_agent, {"active": False})
+            if not isinstance(last_entry, dict):
+                last_entry = {"active": False}
+                agents[last_agent] = last_entry
+            last_entry["active"] = False
+            last_entry["updated_at"] = now_iso()
+            data["last_agent"] = None
+            save_state(path, data)
+            print(json.dumps({"ok": True, "agent": last_agent}, sort_keys=True, separators=(",", ":")))
+            return 0
+
         if len(argv) < 3:
             usage()
             return 2
@@ -102,12 +128,15 @@ def main(argv: list[str]) -> int:
             entry["updated_at"] = now_iso()
             if len(argv) >= 4 and argv[3]:
                 entry["pane_id"] = argv[3]
+            data["last_agent"] = agent
             save_state(path, data)
             return 0
 
         if command == "deactivate":
             entry["active"] = False
             entry["updated_at"] = now_iso()
+            if data.get("last_agent") == agent:
+                data["last_agent"] = None
             save_state(path, data)
             return 0
 

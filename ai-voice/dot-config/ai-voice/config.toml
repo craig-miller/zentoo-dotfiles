@@ -48,12 +48,15 @@ model = "/home/craig/.local/share/ai-voice/wake/bodhi.onnx"
 threshold = 0.92
 confirm_count = 3
 
-# Closure wake phrases use kind = "close". Once trained, add entries like:
+# Closure wake phrases use kind = "close". Use target = "last" for a single
+# generic closure phrase that deactivates the most recently invoked agent.
+# Once trained, add an entry like:
 # [[wake.words]]
-# phrase = "thanks carrie"
-# agent = "carrie"
+# phrase = "thanks"
+# agent = "last"
 # kind = "close"
-# model = "/home/craig/.local/share/ai-voice/wake/thanks-carrie.onnx"
+# target = "last"
+# model = "/home/craig/.local/share/ai-voice/wake/thanks.onnx"
 # threshold = 0.90
 # confirm_count = 3
 

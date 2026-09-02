@@ -183,6 +183,7 @@ for index, word in enumerate(configured_words):
         "last_wake": 0.0,
         "max_score": 0.0,
         "kind": str(word.get("kind") or word.get("action") or "open").lower(),
+        "target": str(word.get("target") or "").lower(),
     })
 
 display_name = arg_display or str(wake.get("display_name") or assistant.get("display_name") or "AI Wake Listener")
@@ -261,8 +262,18 @@ try:
                 )
                 if kind in {"close", "end", "deactivate", "inactive"}:
                     if Path(session_bin).is_file() and os.access(session_bin, os.X_OK):
-                        subprocess.run([session_bin, "deactivate", cfg["agent"]], check=False)
-                    log(f"voice session deactivated agent={cfg['agent']} phrase={cfg['phrase']}")
+                        if cfg["agent"] in {"", "last", "__last__"} or cfg.get("target") == "last":
+                            result = subprocess.run(
+                                [session_bin, "deactivate-last"],
+                                check=False,
+                                stdout=subprocess.PIPE,
+                                text=True,
+                            )
+                            detail = result.stdout.strip()
+                            log(f"last voice session deactivated phrase={cfg['phrase']} result={detail}")
+                        else:
+                            subprocess.run([session_bin, "deactivate", cfg["agent"]], check=False)
+                            log(f"voice session deactivated agent={cfg['agent']} phrase={cfg['phrase']}")
                 else:
                     env = os.environ.copy()
                     env["AI_VOICE_WAKE_KIND"] = "open"
