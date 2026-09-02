@@ -10,6 +10,7 @@ display_name=""
 venv="${VIOLAWAKE_VENV:-}"
 voice_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-voice-to-herdr"
 session_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-voice-session"
+speak_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-speak"
 config_file="${XDG_CONFIG_HOME:-$HOME/.config}/ai-voice/config.toml"
 runtime_dir="${XDG_RUNTIME_DIR:-/tmp}/ai-voice"
 log_file="${AI_WAKE_LOG:-/tmp/ai-wake.log}"
@@ -77,7 +78,7 @@ if [[ ! -x "$voice_bin" ]]; then
 fi
 
 exec "$python_bin" - \
-  "$config_file" "$agent" "$model" "$threshold" "$confirm_count" "$cooldown" "$display_name" "$voice_bin" "$log_file" "$session_bin" <<'PY'
+  "$config_file" "$agent" "$model" "$threshold" "$confirm_count" "$cooldown" "$display_name" "$voice_bin" "$log_file" "$session_bin" "$speak_bin" <<'PY'
 from __future__ import annotations
 
 import contextlib
@@ -99,6 +100,7 @@ arg_agent, arg_model, arg_threshold, arg_confirm, arg_cooldown, arg_display = sy
 voice_bin = sys.argv[8]
 log_file = Path(sys.argv[9])
 session_bin = sys.argv[10]
+speak_bin = sys.argv[11]
 
 
 def load_config() -> dict:
@@ -117,6 +119,16 @@ def log(message: str) -> None:
     print(line, flush=True)
     with log_file.open("a", encoding="utf-8") as fh:
         fh.write(line + "\n")
+
+
+def speak_ack(message: str, agent: str = "assistant") -> None:
+    if not Path(speak_bin).is_file() or not os.access(speak_bin, os.X_OK):
+        return
+    subprocess.Popen(
+        [speak_bin, "--agent", agent, message],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 
 config = load_config()
@@ -271,9 +283,13 @@ try:
                             )
                             detail = result.stdout.strip()
                             log(f"last voice session deactivated phrase={cfg['phrase']} result={detail}")
+                            if result.returncode == 0:
+                                speak_ack("Conversation closed.", "assistant")
                         else:
-                            subprocess.run([session_bin, "deactivate", cfg["agent"]], check=False)
+                            result = subprocess.run([session_bin, "deactivate", cfg["agent"]], check=False)
                             log(f"voice session deactivated agent={cfg['agent']} phrase={cfg['phrase']}")
+                            if result.returncode == 0:
+                                speak_ack("Conversation closed.", cfg["agent"])
                 else:
                     env = os.environ.copy()
                     env["AI_VOICE_WAKE_KIND"] = "open"
