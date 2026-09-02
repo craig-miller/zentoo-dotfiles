@@ -310,12 +310,12 @@ try:
                             detail = result.stdout.strip()
                             log(f"last voice session deactivated phrase={cfg['phrase']} result={detail}")
                             if result.returncode == 0:
-                                speak_ack("Conversation closed.", "assistant")
+                                speak_ack("You bet.", "assistant")
                         else:
                             result = subprocess.run([session_bin, "deactivate", cfg["agent"]], check=False)
                             log(f"voice session deactivated agent={cfg['agent']} phrase={cfg['phrase']}")
                             if result.returncode == 0:
-                                speak_ack("Conversation closed.", cfg["agent"])
+                                speak_ack("You bet.", cfg["agent"])
                 else:
                     env = os.environ.copy()
                     env["AI_VOICE_WAKE_KIND"] = "open"
