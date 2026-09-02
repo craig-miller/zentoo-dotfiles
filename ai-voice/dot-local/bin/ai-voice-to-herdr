@@ -8,6 +8,14 @@ if [[ -n "$agent" ]]; then
 	# Backward compatibility for any older wrappers/actions still looking for the
 	# original environment variable name.
 	export ZENTOO_VOICE_AGENT="$agent"
+	case "$agent" in
+		carrie) agent_display="Carrie" ;;
+		bodhi) agent_display="Bodhi" ;;
+		*) agent_display="${agent^}" ;;
+	esac
+	export OSTT_CONTEXT_LABEL="${AI_VOICE_AGENT_DISPLAY:-$agent_display}"
+else
+	export OSTT_CONTEXT_LABEL="${AI_VOICE_AGENT_DISPLAY:-Carrie}"
 fi
 
 # Auto-stop after a pause so push-to-talk only needs a start keypress. Pressing
