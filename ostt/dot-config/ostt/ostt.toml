@@ -12,8 +12,8 @@ device = "default"
 output_format = "mp3 -ab 16k -ar 12000"
 
 # Use a fixed meter reference so ambient room noise stays visually quiet.
-# Closer to 0 dBFS makes the meter less sensitive, leaving more headroom for speech peaks.
-reference_level_db = 0
+# Higher values make the visual meter less sensitive, leaving more headroom for speech peaks.
+reference_level_db = 6
 
 [popup]
 # Zentoo's terminal emulator for the push-to-talk popup.
