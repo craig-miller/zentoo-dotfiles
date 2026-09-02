@@ -18,5 +18,8 @@ export OSTT_AUTO_STOP_MIN_MS="${OSTT_AUTO_STOP_MIN_MS:-900}"
 # audio above this as non-silence, so construction/traffic noise may require
 # tuning upward.
 export OSTT_AUTO_STOP_RMS_THRESHOLD="${OSTT_AUTO_STOP_RMS_THRESHOLD:-0.02}"
+# Voice ask mode can legitimately wait for the agent response and spoken TTS.
+# Patched Zentoo OSTT honors this for bash processing actions.
+export OSTT_BASH_ACTION_TIMEOUT_SECS="${OSTT_BASH_ACTION_TIMEOUT_SECS:-180}"
 
 exec ostt launch -- -p herdr

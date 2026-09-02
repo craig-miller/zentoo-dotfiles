@@ -89,27 +89,14 @@ case "$mode" in
 			exit 0
 		fi
 
-		# OSTT's bash processing actions have a 30s timeout. Return to OSTT as soon
-		# as the prompt is sent, and let a detached helper wait for/speak the answer.
+		# Wait for the agent turn to settle, then speak the next recorded Pi answer.
 		# Herdr can still be idle for a short moment immediately after raw pane input,
 		# so response extraction also waits for a new Pi message id instead of reading
-		# the previous answer.
-		AI_VOICE_PANE_ID="$pane_id" \
-		AI_VOICE_TARGET="$target" \
-		AI_VOICE_BEFORE_RESPONSE_ID="$before_response_id" \
-		AI_VOICE_RESPONSE_TEXT_BIN="$response_text_bin" \
-		AI_VOICE_SPEAK_BIN="$speak_bin" \
-		setsid bash -c '
-			log_file="${XDG_RUNTIME_DIR:-/tmp}/ai-voice/voice-response-${AI_VOICE_PANE_ID//[:\/]/_}.log"
-			mkdir -p "$(dirname "$log_file")"
-			{
-				herdr agent wait "$AI_VOICE_PANE_ID" --timeout 180000 >/dev/null || true
-				if ! "$AI_VOICE_RESPONSE_TEXT_BIN" "$AI_VOICE_PANE_ID" --after-id "$AI_VOICE_BEFORE_RESPONSE_ID" --wait-ms 180000 | "$AI_VOICE_SPEAK_BIN" --agent "$AI_VOICE_TARGET"; then
-					if command -v notify-send >/dev/null 2>&1; then
-						notify-send "AI Voice" "I sent the question, but couldn'"'"'t speak the response."
-					fi
-				fi
-			} >>"$log_file" 2>&1
-		' >/dev/null 2>&1 &
+		# the previous answer. Zentoo's OSTT patch raises the bash action timeout for
+		# this voice workflow so the popup doesn't report a false error.
+		herdr agent wait "$pane_id" --timeout 180000 >/dev/null || true
+		if ! "$response_text_bin" "$pane_id" --after-id "$before_response_id" --wait-ms 180000 | "$speak_bin" --agent "$target"; then
+			notify "I sent the question, but couldn't speak the response."
+		fi
 		;;
 esac
