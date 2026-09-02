@@ -9,6 +9,7 @@ cooldown=""
 display_name=""
 venv="${VIOLAWAKE_VENV:-}"
 voice_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-voice-to-herdr"
+session_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-voice-session"
 config_file="${XDG_CONFIG_HOME:-$HOME/.config}/ai-voice/config.toml"
 runtime_dir="${XDG_RUNTIME_DIR:-/tmp}/ai-voice"
 log_file="${AI_WAKE_LOG:-/tmp/ai-wake.log}"
@@ -76,7 +77,7 @@ if [[ ! -x "$voice_bin" ]]; then
 fi
 
 exec "$python_bin" - \
-  "$config_file" "$agent" "$model" "$threshold" "$confirm_count" "$cooldown" "$display_name" "$voice_bin" "$log_file" <<'PY'
+  "$config_file" "$agent" "$model" "$threshold" "$confirm_count" "$cooldown" "$display_name" "$voice_bin" "$log_file" "$session_bin" <<'PY'
 from __future__ import annotations
 
 import contextlib
@@ -97,6 +98,7 @@ config_file = Path(sys.argv[1])
 arg_agent, arg_model, arg_threshold, arg_confirm, arg_cooldown, arg_display = sys.argv[2:8]
 voice_bin = sys.argv[8]
 log_file = Path(sys.argv[9])
+session_bin = sys.argv[10]
 
 
 def load_config() -> dict:
@@ -180,6 +182,7 @@ for index, word in enumerate(configured_words):
         "above": 0,
         "last_wake": 0.0,
         "max_score": 0.0,
+        "kind": str(word.get("kind") or word.get("action") or "open").lower(),
     })
 
 display_name = arg_display or str(wake.get("display_name") or assistant.get("display_name") or "AI Wake Listener")
@@ -206,7 +209,7 @@ cmd = [
 log(
     f"starting ai-wake words={len(detector_configs)} display_name={display_name!r} "
     + ", ".join(
-        f"{cfg['phrase']}->{cfg['agent']} threshold={cfg['threshold']} "
+        f"{cfg['phrase']}->{cfg['agent']} kind={cfg['kind']} threshold={cfg['threshold']} "
         f"confirm_count={cfg['confirm_count']} cooldown={cfg['cooldown']}s model={cfg['model']}"
         for cfg in detector_configs
     )
@@ -251,11 +254,20 @@ try:
                     other["above"] = 0
                     other["last_wake"] = now
                     other["detector"].reset_cooldown()
+                kind = cfg["kind"]
                 log(
-                    f"wake detected phrase={cfg['phrase']} agent={cfg['agent']} "
-                    f"score={score:.3f} max={cfg['max_score']:.3f}; launching voice prompt"
+                    f"wake detected phrase={cfg['phrase']} agent={cfg['agent']} kind={kind} "
+                    f"score={score:.3f} max={cfg['max_score']:.3f}"
                 )
-                subprocess.Popen([voice_bin, cfg["agent"]])
+                if kind in {"close", "end", "deactivate", "inactive"}:
+                    if Path(session_bin).is_file() and os.access(session_bin, os.X_OK):
+                        subprocess.run([session_bin, "deactivate", cfg["agent"]], check=False)
+                    log(f"voice session deactivated agent={cfg['agent']} phrase={cfg['phrase']}")
+                else:
+                    env = os.environ.copy()
+                    env["AI_VOICE_WAKE_KIND"] = "open"
+                    env["AI_VOICE_WAKE_PHRASE"] = cfg["phrase"]
+                    subprocess.Popen([voice_bin, cfg["agent"]], env=env)
 except KeyboardInterrupt:
     log("stopping ai-wake")
 finally:

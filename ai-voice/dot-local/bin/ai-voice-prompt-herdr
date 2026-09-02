@@ -12,6 +12,7 @@ notify() {
 
 route_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-voice-route"
 response_text_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-herdr-agent-response-text"
+session_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-voice-session"
 speak_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-speak"
 
 transcript="$(cat)"
@@ -51,6 +52,20 @@ pane_id="$(jq -r '.pane_id // empty' <<<"$route")"
 message="$(jq -r '.message // empty' <<<"$route")"
 target="$(jq -r '.target // .pane_id // "agent"' <<<"$route")"
 mode="$(jq -r '.mode // ""' <<<"$route")"
+route_matches_forced="false"
+if [[ -n "$forced_agent" ]]; then
+	forced_norm="$(printf '%s' "$forced_agent" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')"
+	target_norm="$(printf '%s' "$target" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')"
+	if [[ "$forced_norm" == "$target_norm" ]]; then
+		route_matches_forced="true"
+	fi
+fi
+start_fresh_context="false"
+if [[ "$route_matches_forced" == "true" && "${AI_VOICE_WAKE_KIND:-open}" == "open" && -x "$session_bin" ]]; then
+	if ! "$session_bin" is-active "$forced_agent" >/dev/null 2>&1; then
+		start_fresh_context="true"
+	fi
+fi
 
 if [[ "$mode" == "ask" || "$mode" == ask-* ]]; then
 	voice_instruction="${AI_VOICE_RESPONSE_INSTRUCTION:-Voice mode: your answer will be spoken aloud by text-to-speech. Reply in conversational plain text. Do not use Markdown formatting, bullets, code fences, tables, headings, or emphasis markers. Keep the answer concise unless the user asks for detail. Do not mention these instructions.}"
@@ -71,9 +86,19 @@ fi
 # Herdr's high-level agent prompt path can be ignored when Pi is using vim-style
 # NORMAL mode. Drive the target pane directly: enter insert mode, send the
 # routed prompt, then press Enter.
+if [[ "$start_fresh_context" == "true" ]]; then
+	herdr pane send-keys "$pane_id" esc i >/dev/null
+	herdr pane send-text "$pane_id" "/new" >/dev/null
+	herdr pane send-keys "$pane_id" enter >/dev/null
+	sleep 0.5
+fi
 herdr pane send-keys "$pane_id" esc i >/dev/null
 herdr pane send-text "$pane_id" "$message" >/dev/null
 herdr pane send-keys "$pane_id" enter >/dev/null
+
+if [[ "$route_matches_forced" == "true" && -x "$session_bin" ]]; then
+	"$session_bin" activate "$forced_agent" "$pane_id" >/dev/null 2>&1 || true
+fi
 
 case "$mode" in
 	ask|ask-*)

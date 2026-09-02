@@ -30,9 +30,12 @@ confirm_count = 3
 cooldown_ms = 2000
 display_name = "Carrie Wake Listener"
 
+# kind = "open" starts/reuses that agent's active voice session. If the agent
+# is currently inactive, the first routed prompt starts a fresh Pi context.
 [[wake.words]]
 phrase = "carrie"
 agent = "carrie"
+kind = "open"
 model = "/home/craig/.local/share/ai-voice/wake/carrie.onnx"
 threshold = 0.80
 confirm_count = 3
@@ -40,9 +43,19 @@ confirm_count = 3
 [[wake.words]]
 phrase = "bodhi"
 agent = "bodhi"
+kind = "open"
 model = "/home/craig/.local/share/ai-voice/wake/bodhi.onnx"
 threshold = 0.92
 confirm_count = 3
+
+# Closure wake phrases use kind = "close". Once trained, add entries like:
+# [[wake.words]]
+# phrase = "thanks carrie"
+# agent = "carrie"
+# kind = "close"
+# model = "/home/craig/.local/share/ai-voice/wake/thanks-carrie.onnx"
+# threshold = 0.90
+# confirm_count = 3
 
 [tts]
 # "auto" uses the selected Piper voice when piper is installed and the model
