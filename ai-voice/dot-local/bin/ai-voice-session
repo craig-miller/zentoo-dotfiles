@@ -57,6 +57,7 @@ def usage() -> None:
         "  is-active <agent>\n"
         "  activate <agent> [pane_id]\n"
         "  deactivate <agent>\n"
+        "  set-busy <agent> true|false\n"
         "  deactivate-last\n"
         "  last\n"
         "  list\n",
@@ -134,9 +135,19 @@ def main(argv: list[str]) -> int:
 
         if command == "deactivate":
             entry["active"] = False
+            entry["busy"] = False
             entry["updated_at"] = now_iso()
             if data.get("last_agent") == agent:
                 data["last_agent"] = None
+            save_state(path, data)
+            return 0
+
+        if command == "set-busy":
+            if len(argv) < 4 or argv[3].lower() not in {"true", "false", "1", "0", "yes", "no"}:
+                usage()
+                return 2
+            entry["busy"] = argv[3].lower() in {"true", "1", "yes"}
+            entry["updated_at"] = now_iso()
             save_state(path, data)
             return 0
 

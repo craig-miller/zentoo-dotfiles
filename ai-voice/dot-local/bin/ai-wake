@@ -131,6 +131,29 @@ def speak_ack(message: str, agent: str = "assistant") -> None:
     )
 
 
+def last_session_is_busy() -> bool:
+    if not Path(session_bin).is_file() or not os.access(session_bin, os.X_OK):
+        return False
+    try:
+        result = subprocess.run(
+            [session_bin, "list"],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+        if result.returncode != 0:
+            return False
+        state = __import__("json").loads(result.stdout)
+        last_agent = state.get("last_agent")
+        if not last_agent:
+            return False
+        entry = state.get("agents", {}).get(last_agent, {})
+        return bool(entry.get("busy"))
+    except Exception:
+        return False
+
+
 config = load_config()
 wake = config.get("wake", {}) if isinstance(config.get("wake", {}), dict) else {}
 assistant = config.get("assistant", {}) if isinstance(config.get("assistant", {}), dict) else {}
@@ -275,6 +298,9 @@ try:
                 if kind in {"close", "end", "deactivate", "inactive"}:
                     if Path(session_bin).is_file() and os.access(session_bin, os.X_OK):
                         if cfg["agent"] in {"", "last", "__last__"} or cfg.get("target") == "last":
+                            if last_session_is_busy():
+                                log(f"ignoring close wake phrase={cfg['phrase']}; last session is busy")
+                                continue
                             result = subprocess.run(
                                 [session_bin, "deactivate-last"],
                                 check=False,

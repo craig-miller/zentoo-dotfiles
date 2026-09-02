@@ -15,6 +15,14 @@ response_text_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-herdr-agent-response-tex
 session_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-voice-session"
 speak_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-speak"
 
+session_busy_agent=""
+cleanup_session_busy() {
+	if [[ -n "$session_busy_agent" && -x "${session_bin:-}" ]]; then
+		"$session_bin" set-busy "$session_busy_agent" false >/dev/null 2>&1 || true
+	fi
+}
+trap cleanup_session_busy EXIT
+
 transcript="$(cat)"
 forced_agent="${AI_VOICE_AGENT:-${ZENTOO_VOICE_AGENT:-}}"
 if [[ -n "$forced_agent" ]]; then
@@ -83,6 +91,12 @@ fi
 # Herdr's high-level agent prompt path can be ignored when Pi is using vim-style
 # NORMAL mode. Drive the target pane directly: enter insert mode, send the
 # routed prompt, then press Enter.
+if [[ "$route_matches_forced" == "true" && -x "$session_bin" ]]; then
+	"$session_bin" activate "$forced_agent" "$pane_id" >/dev/null 2>&1 || true
+	"$session_bin" set-busy "$forced_agent" true >/dev/null 2>&1 || true
+	session_busy_agent="$forced_agent"
+fi
+
 if [[ "$start_fresh_context" == "true" ]]; then
 	herdr pane send-keys "$pane_id" esc i >/dev/null
 	herdr pane send-text "$pane_id" "/new" >/dev/null
@@ -95,10 +109,6 @@ fi
 herdr pane send-keys "$pane_id" esc i >/dev/null
 herdr pane send-text "$pane_id" "$message" >/dev/null
 herdr pane send-keys "$pane_id" enter >/dev/null
-
-if [[ "$route_matches_forced" == "true" && -x "$session_bin" ]]; then
-	"$session_bin" activate "$forced_agent" "$pane_id" >/dev/null 2>&1 || true
-fi
 
 case "$mode" in
 	ask|ask-*)
