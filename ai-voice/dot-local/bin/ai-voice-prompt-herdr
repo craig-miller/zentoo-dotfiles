@@ -75,8 +75,6 @@ herdr pane send-keys "$pane_id" esc i >/dev/null
 herdr pane send-text "$pane_id" "$message" >/dev/null
 herdr pane send-keys "$pane_id" enter >/dev/null
 
-printf 'Sent to %s: %s\n' "$target" "$message"
-
 case "$mode" in
 	ask|ask-*)
 		if [[ ! -x "$response_text_bin" ]]; then
