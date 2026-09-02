@@ -2,6 +2,16 @@
 set -euo pipefail
 
 agent="${1:-}"
+wakectl_bin="${XDG_BIN_HOME:-$HOME/.local/bin}/ai-wakectl"
+wake_was_running="false"
+wake_stopped_by_voice="false"
+
+restore_wake() {
+	if [[ "$wake_stopped_by_voice" == "true" && -x "$wakectl_bin" ]]; then
+		"$wakectl_bin" on >/dev/null 2>&1 || true
+	fi
+}
+trap restore_wake EXIT
 
 if [[ -n "$agent" ]]; then
 	export AI_VOICE_AGENT="$agent"
@@ -30,4 +40,15 @@ export OSTT_AUTO_STOP_RMS_THRESHOLD="${OSTT_AUTO_STOP_RMS_THRESHOLD:-0.02}"
 # Patched Zentoo OSTT honors this for bash processing actions.
 export OSTT_BASH_ACTION_TIMEOUT_SECS="${OSTT_BASH_ACTION_TIMEOUT_SECS:-600}"
 
-exec ostt launch -- -p herdr
+# While OSTT is actively recording/transcribing/processing a prompt, suppress
+# the always-on wake listener so spoken prompts and TTS responses cannot trigger
+# other wake models. Restore it afterward only if it was running when we began.
+if [[ "${AI_VOICE_STOP_WAKE_DURING_OSTT:-true}" == "true" && -x "$wakectl_bin" ]]; then
+	if "$wakectl_bin" status >/dev/null 2>&1; then
+		wake_was_running="true"
+		"$wakectl_bin" off >/dev/null 2>&1 || true
+		wake_stopped_by_voice="true"
+	fi
+fi
+
+ostt launch -- -p herdr
