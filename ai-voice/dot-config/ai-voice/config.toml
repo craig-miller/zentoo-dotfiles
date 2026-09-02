@@ -37,6 +37,13 @@ model = "/home/craig/.local/share/ai-voice/wake/carrie.onnx"
 threshold = 0.80
 confirm_count = 3
 
+[[wake.words]]
+phrase = "bodhi"
+agent = "bodhi"
+model = "/home/craig/.local/share/ai-voice/wake/bodhi.onnx"
+threshold = 0.92
+confirm_count = 3
+
 [tts]
 # "auto" uses the selected Piper voice when piper is installed and the model
 # exists, otherwise falls back to espeak-ng.
@@ -64,4 +71,5 @@ espeak_speed = 170
 [tts.agent_voices]
 assistant = "carrie"
 carrie = "carrie"
+bodhi = "assistant"
 zentoo = "assistant"

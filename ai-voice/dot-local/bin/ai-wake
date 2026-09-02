@@ -79,6 +79,7 @@ exec "$python_bin" - \
   "$config_file" "$agent" "$model" "$threshold" "$confirm_count" "$cooldown" "$display_name" "$voice_bin" "$log_file" <<'PY'
 from __future__ import annotations
 
+import contextlib
 import os
 import subprocess
 import sys
@@ -124,28 +125,68 @@ if not os.environ.get("AI_WAKE_FORCE") and wake.get("enabled") is False:
     log("wake listener disabled in config; exiting")
     raise SystemExit(0)
 
-words = wake.get("words")
-word: dict = {}
-if isinstance(words, list) and words and isinstance(words[0], dict):
-    word = words[0]
+def word_cooldown_s(word: dict) -> float:
+    if word.get("cooldown_s") is not None:
+        return float(word["cooldown_s"])
+    if word.get("cooldown_ms") is not None:
+        return float(word["cooldown_ms"]) / 1000.0
+    if wake.get("cooldown_s") is not None:
+        return float(wake["cooldown_s"])
+    return float(wake.get("cooldown_ms", 2000)) / 1000.0
 
-agent = arg_agent or str(word.get("agent") or assistant.get("default_agent") or config.get("default_agent") or "carrie")
-model = arg_model or str(word.get("model") or wake.get("model") or f"~/.local/share/ai-voice/wake/{agent}.onnx")
-threshold = float(arg_threshold or word.get("threshold") or wake.get("threshold") or 0.80)
-confirm_count = int(arg_confirm or word.get("confirm_count") or wake.get("confirm_count") or 3)
-cooldown = float(arg_cooldown or word.get("cooldown_s") or wake.get("cooldown_s") or (float(wake.get("cooldown_ms", 2000)) / 1000.0))
-display_name = arg_display or str(word.get("display_name") or wake.get("display_name") or assistant.get("display_name") or "AI Wake Listener")
-model = expand_path(model)
 
-if not Path(model).is_file():
-    raise SystemExit(f"Wake model not found: {model}")
+words_value = wake.get("words")
+configured_words: list[dict] = []
+if isinstance(words_value, list):
+    configured_words = [w for w in words_value if isinstance(w, dict)]
+
+if arg_agent or arg_model:
+    agent = arg_agent or str(assistant.get("default_agent") or config.get("default_agent") or "carrie")
+    configured_words = [{
+        "phrase": agent,
+        "agent": agent,
+        "model": arg_model or wake.get("model") or f"~/.local/share/ai-voice/wake/{agent}.onnx",
+        "threshold": arg_threshold or wake.get("threshold") or 0.80,
+        "confirm_count": arg_confirm or wake.get("confirm_count") or 3,
+        "cooldown_s": arg_cooldown or word_cooldown_s({}),
+        "display_name": arg_display or wake.get("display_name") or assistant.get("display_name") or "AI Wake Listener",
+    }]
+elif not configured_words:
+    agent = str(assistant.get("default_agent") or config.get("default_agent") or "carrie")
+    configured_words = [{
+        "phrase": agent,
+        "agent": agent,
+        "model": wake.get("model") or f"~/.local/share/ai-voice/wake/{agent}.onnx",
+        "threshold": wake.get("threshold") or 0.80,
+        "confirm_count": wake.get("confirm_count") or 3,
+        "cooldown_s": word_cooldown_s({}),
+        "display_name": wake.get("display_name") or assistant.get("display_name") or "AI Wake Listener",
+    }]
+
+detector_configs = []
+for index, word in enumerate(configured_words):
+    agent = str(word.get("agent") or word.get("phrase") or assistant.get("default_agent") or config.get("default_agent") or "carrie")
+    model = expand_path(str(word.get("model") or wake.get("model") or f"~/.local/share/ai-voice/wake/{agent}.onnx"))
+    if not Path(model).is_file():
+        raise SystemExit(f"Wake model not found for {agent}: {model}")
+    detector_configs.append({
+        "index": index,
+        "phrase": str(word.get("phrase") or agent),
+        "agent": agent,
+        "model": model,
+        "threshold": float(arg_threshold or word.get("threshold") or wake.get("threshold") or 0.80),
+        "confirm_count": int(arg_confirm or word.get("confirm_count") or wake.get("confirm_count") or 3),
+        "cooldown": float(arg_cooldown or word_cooldown_s(word)),
+        "above": 0,
+        "last_wake": 0.0,
+        "max_score": 0.0,
+    })
+
+display_name = arg_display or str(wake.get("display_name") or assistant.get("display_name") or "AI Wake Listener")
 
 rate = 16000
 frame_samples = 320
 frame_bytes = frame_samples * 2
-last_wake = 0.0
-above = 0
-max_score = 0.0
 safe_node_name = "ai-voice.wake"
 props = f"application.name={display_name},media.name={display_name},node.name={safe_node_name}"
 cmd = [
@@ -162,30 +203,52 @@ cmd = [
 ]
 
 log(
-    f"starting ai-wake agent={agent} model={model} threshold={threshold} "
-    f"confirm_count={confirm_count} cooldown={cooldown}s display_name={display_name!r}"
+    f"starting ai-wake words={len(detector_configs)} display_name={display_name!r} "
+    + ", ".join(
+        f"{cfg['phrase']}->{cfg['agent']} threshold={cfg['threshold']} "
+        f"confirm_count={cfg['confirm_count']} cooldown={cfg['cooldown']}s model={cfg['model']}"
+        for cfg in detector_configs
+    )
 )
 proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 try:
-    with WakeDetector(model=model, threshold=threshold, confirm_count=confirm_count, backend="onnx") as detector:
+    with contextlib.ExitStack() as stack:
+        for cfg in detector_configs:
+            cfg["detector"] = stack.enter_context(
+                WakeDetector(
+                    model=cfg["model"],
+                    threshold=cfg["threshold"],
+                    confirm_count=cfg["confirm_count"],
+                    backend="onnx",
+                )
+            )
         while True:
             data = proc.stdout.read(frame_bytes) if proc.stdout else b""
             if len(data) < frame_bytes:
                 log("audio stream ended")
                 break
-            score = detector.process(data)
-            max_score = max(max_score, score)
-            if score >= threshold:
-                above += 1
-            else:
-                above = 0
             now = time.monotonic()
-            if above >= confirm_count and now - last_wake >= cooldown:
-                above = 0
-                last_wake = now
-                detector.reset_cooldown()
-                log(f"wake detected agent={agent} score={score:.3f} max={max_score:.3f}; launching voice prompt")
-                subprocess.Popen([voice_bin, agent])
+            best_trigger = None
+            for cfg in detector_configs:
+                score = cfg["detector"].process(data)
+                cfg["max_score"] = max(cfg["max_score"], score)
+                if score >= cfg["threshold"]:
+                    cfg["above"] += 1
+                else:
+                    cfg["above"] = 0
+                if cfg["above"] >= cfg["confirm_count"] and now - cfg["last_wake"] >= cfg["cooldown"]:
+                    if best_trigger is None or score > best_trigger[1]:
+                        best_trigger = (cfg, score)
+            if best_trigger is not None:
+                cfg, score = best_trigger
+                cfg["above"] = 0
+                cfg["last_wake"] = now
+                cfg["detector"].reset_cooldown()
+                log(
+                    f"wake detected phrase={cfg['phrase']} agent={cfg['agent']} "
+                    f"score={score:.3f} max={cfg['max_score']:.3f}; launching voice prompt"
+                )
+                subprocess.Popen([voice_bin, cfg["agent"]])
 except KeyboardInterrupt:
     log("stopping ai-wake")
 finally:
