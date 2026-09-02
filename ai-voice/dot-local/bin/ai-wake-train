@@ -21,8 +21,32 @@ delay="2"
 epochs="80"
 min_rms="50"
 keep_raw="false"
+stop_wake="true"
+pause_media="true"
 venv="${VIOLAWAKE_VENV:-}"
 base_dir="${XDG_DATA_HOME:-$HOME/.local/share}/ai-voice/wake"
+wake_was_running="false"
+wake_stopped_by_script="false"
+paused_players=()
+cleanup_done="false"
+
+cleanup() {
+  if [[ "$cleanup_done" == "true" ]]; then
+    return
+  fi
+  cleanup_done="true"
+
+  if [[ "${#paused_players[@]}" -gt 0 ]] && command -v playerctl >/dev/null 2>&1; then
+    for player in "${paused_players[@]}"; do
+      playerctl -p "$player" play >/dev/null 2>&1 || true
+    done
+  fi
+
+  if [[ "$wake_stopped_by_script" == "true" ]] && command -v ai-wakectl >/dev/null 2>&1; then
+    ai-wakectl on >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup EXIT
 
 usage() {
   cat <<EOF
@@ -39,6 +63,8 @@ Options:
   --epochs N         ViolaWake training epochs (default: 80)
   --min-rms NUM      Reject clips below this RMS level (default: 50)
   --keep-raw         Keep untrimmed recordings for debugging (default: delete after trim)
+  --no-stop-wake     Do not stop/restart ai-wake around training
+  --no-pause-media   Do not pause currently playing MPRIS media players
   --venv PATH        ViolaWake training venv fallback (default: VIOLAWAKE_VENV, if set)
   -h, --help         Show this help
 
@@ -59,6 +85,8 @@ while [[ $# -gt 0 ]]; do
     --epochs) epochs="$2"; shift 2 ;;
     --min-rms) min_rms="$2"; shift 2 ;;
     --keep-raw) keep_raw="true"; shift ;;
+    --no-stop-wake) stop_wake="false"; shift ;;
+    --no-pause-media) pause_media="false"; shift ;;
     --venv) venv="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
@@ -84,6 +112,27 @@ if ! command -v pw-record >/dev/null 2>&1; then
   exit 1
 fi
 
+if [[ "$stop_wake" == "true" ]] && command -v ai-wakectl >/dev/null 2>&1; then
+  wake_status="$(ai-wakectl status 2>/dev/null || true)"
+  if [[ "$wake_status" == running* ]]; then
+    wake_was_running="true"
+    echo "Wake listener is running; stopping it during training to avoid self-triggering."
+    ai-wakectl off >/dev/null 2>&1 || true
+    wake_stopped_by_script="true"
+  fi
+fi
+
+if [[ "$pause_media" == "true" ]] && command -v playerctl >/dev/null 2>&1; then
+  while IFS= read -r player; do
+    [[ -n "$player" ]] || continue
+    if [[ "$(playerctl -p "$player" status 2>/dev/null || true)" == "Playing" ]]; then
+      echo "Pausing media player during training: $player"
+      playerctl -p "$player" pause >/dev/null 2>&1 || true
+      paused_players+=("$player")
+    fi
+  done < <(playerctl -l 2>/dev/null || true)
+fi
+
 sample_rate=16000
 sample_count=$(python3 - <<PY
 print(int(float("$duration") * $sample_rate))
@@ -107,6 +156,8 @@ Wake-word training
   output:     $output_model
   positives:  $positives_dir
   raw audio:  $raw_positives_dir ($([[ "$keep_raw" == "true" ]] && echo "kept" || echo "deleted after trim"))
+  wake guard: $([[ "$wake_was_running" == "true" ]] && echo "ai-wake stopped; will restore on exit" || echo "ai-wake was not running or guard disabled")
+  media:      $([[ "${#paused_players[@]}" -gt 0 ]] && echo "paused ${#paused_players[@]} player(s); will restore on exit" || echo "no playing MPRIS media paused")
 
 For each sample, say only: $phrase
 Use varied tone/distance, but keep each clip short and clean.
