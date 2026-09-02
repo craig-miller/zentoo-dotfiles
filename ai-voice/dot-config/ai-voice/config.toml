@@ -48,17 +48,16 @@ model = "/home/craig/.local/share/ai-voice/wake/bodhi.onnx"
 threshold = 0.92
 confirm_count = 3
 
-# Closure wake phrases use kind = "close". Use target = "last" for a single
-# generic closure phrase that deactivates the most recently invoked agent.
-# Once trained, add an entry like:
-# [[wake.words]]
-# phrase = "thanks"
-# agent = "last"
-# kind = "close"
-# target = "last"
-# model = "/home/craig/.local/share/ai-voice/wake/thanks.onnx"
-# threshold = 0.90
-# confirm_count = 3
+# Closure wake phrases use kind = "close". target = "last" deactivates the
+# most recently invoked agent.
+[[wake.words]]
+phrase = "thanks"
+agent = "last"
+kind = "close"
+target = "last"
+model = "/home/craig/.local/share/ai-voice/wake/thanks.onnx"
+threshold = 0.92
+confirm_count = 3
 
 [tts]
 # "auto" uses the selected Piper voice when piper is installed and the model
