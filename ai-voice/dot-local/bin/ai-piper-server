@@ -15,6 +15,7 @@ import io
 import json
 import logging
 import os
+import re
 import signal
 import sys
 import wave
@@ -48,6 +49,26 @@ def load_config() -> dict[str, Any]:
 
 def expand(value: Any) -> str:
     return os.path.expandvars(os.path.expanduser(str(value))) if value is not None else ""
+
+
+def text_for_speech(text: str) -> str:
+    """Make common Markdown-ish agent output pleasant for TTS."""
+    text = re.sub(r"```[^`]*```", " ", text, flags=re.S)
+    text = re.sub(r"`([^`]+)`", r"\1", text)
+    text = re.sub(r"!\[([^\]]*)\]\([^)]*\)", r"\1", text)
+    text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
+    text = re.sub(r"(?m)^\s{0,3}#{1,6}\s+", "", text)
+    text = re.sub(r"(?m)^\s{0,3}>\s?", "", text)
+    text = re.sub(r"(?m)^\s*[-*+]\s+", "", text)
+    text = re.sub(r"(?m)^\s*\d+[.)]\s+", "", text)
+    text = re.sub(r"(\*\*|__)(.*?)\1", r"\2", text)
+    text = re.sub(r"(?<!\*)\*(?!\*)(.*?)\*(?!\*)", r"\1", text)
+    text = re.sub(r"(?<!_)_(?!_)(.*?)_(?!_)", r"\1", text)
+    text = re.sub(r"~~(.*?)~~", r"\1", text)
+    text = re.sub(r"[*_`]{2,}", "", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r"[ \t]+", " ", text)
+    return text.strip()
 
 
 class VoiceRegistry:
@@ -142,7 +163,7 @@ def make_handler(registry: VoiceRegistry):
             try:
                 length = int(self.headers.get("Content-Length", "0"))
                 body = json.loads(self.rfile.read(length).decode("utf-8"))
-                text = str(body.get("text") or "").strip()
+                text = text_for_speech(str(body.get("text") or "").strip())
                 voice_name = str(body.get("voice") or registry.default_voice)
                 if not text:
                     self.send_json(400, {"ok": False, "error": "empty text"})

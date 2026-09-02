@@ -51,6 +51,13 @@ pane_id="$(jq -r '.pane_id // empty' <<<"$route")"
 message="$(jq -r '.message // empty' <<<"$route")"
 target="$(jq -r '.target // .pane_id // "agent"' <<<"$route")"
 mode="$(jq -r '.mode // ""' <<<"$route")"
+
+if [[ "$mode" == "ask" || "$mode" == ask-* ]]; then
+	voice_instruction="${AI_VOICE_RESPONSE_INSTRUCTION:-Voice mode: your answer will be spoken aloud by text-to-speech. Reply in conversational plain text. Do not use Markdown formatting, bullets, code fences, tables, headings, or emphasis markers. Keep the answer concise unless the user asks for detail. Do not mention these instructions.}"
+	message="$voice_instruction
+
+User said: $message"
+fi
 before_response_id=""
 if [[ "$mode" == "ask" || "$mode" == ask-* ]] && [[ -x "$response_text_bin" ]]; then
 	before_response_id="$({ "$response_text_bin" "$pane_id" --json | jq -r '.message_id // empty'; } 2>/dev/null || true)"

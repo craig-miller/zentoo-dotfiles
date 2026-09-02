@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -43,6 +44,26 @@ def expand(value: Any) -> str:
 
 def have(command: str) -> bool:
     return subprocess.run(["sh", "-c", f"command -v {command} >/dev/null 2>&1"]).returncode == 0
+
+
+def text_for_speech(text: str) -> str:
+    """Make common Markdown-ish agent output pleasant for TTS."""
+    text = re.sub(r"```[^`]*```", " ", text, flags=re.S)
+    text = re.sub(r"`([^`]+)`", r"\1", text)
+    text = re.sub(r"!\[([^\]]*)\]\([^)]*\)", r"\1", text)
+    text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
+    text = re.sub(r"(?m)^\s{0,3}#{1,6}\s+", "", text)
+    text = re.sub(r"(?m)^\s{0,3}>\s?", "", text)
+    text = re.sub(r"(?m)^\s*[-*+]\s+", "", text)
+    text = re.sub(r"(?m)^\s*\d+[.)]\s+", "", text)
+    text = re.sub(r"(\*\*|__)(.*?)\1", r"\2", text)
+    text = re.sub(r"(?<!\*)\*(?!\*)(.*?)\*(?!\*)", r"\1", text)
+    text = re.sub(r"(?<!_)_(?!_)(.*?)_(?!_)", r"\1", text)
+    text = re.sub(r"~~(.*?)~~", r"\1", text)
+    text = re.sub(r"[*_`]{2,}", "", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r"[ \t]+", " ", text)
+    return text.strip()
 
 
 def voice_config(config: dict[str, Any], voice_name: str | None, agent_name: str | None) -> tuple[str, dict[str, Any]]:
@@ -156,7 +177,7 @@ def main() -> int:
     args = parser.parse_args()
 
     text = " ".join(args.text) if args.text else sys.stdin.read()
-    text = text.replace("\r", "").strip()
+    text = text_for_speech(text.replace("\r", "").strip())
     if not text and not args.json:
         return 0
 
