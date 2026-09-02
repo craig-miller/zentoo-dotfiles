@@ -183,6 +183,7 @@ for index, word in enumerate(configured_words):
     })
 
 display_name = arg_display or str(wake.get("display_name") or assistant.get("display_name") or "AI Wake Listener")
+global_last_wake = 0.0
 
 rate = 16000
 frame_samples = 320
@@ -236,14 +237,20 @@ try:
                     cfg["above"] += 1
                 else:
                     cfg["above"] = 0
-                if cfg["above"] >= cfg["confirm_count"] and now - cfg["last_wake"] >= cfg["cooldown"]:
+                if (
+                    cfg["above"] >= cfg["confirm_count"]
+                    and now - cfg["last_wake"] >= cfg["cooldown"]
+                    and now - global_last_wake >= cfg["cooldown"]
+                ):
                     if best_trigger is None or score > best_trigger[1]:
                         best_trigger = (cfg, score)
             if best_trigger is not None:
                 cfg, score = best_trigger
-                cfg["above"] = 0
-                cfg["last_wake"] = now
-                cfg["detector"].reset_cooldown()
+                global_last_wake = now
+                for other in detector_configs:
+                    other["above"] = 0
+                    other["last_wake"] = now
+                    other["detector"].reset_cooldown()
                 log(
                     f"wake detected phrase={cfg['phrase']} agent={cfg['agent']} "
                     f"score={score:.3f} max={cfg['max_score']:.3f}; launching voice prompt"
