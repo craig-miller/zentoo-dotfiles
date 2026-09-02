@@ -14,6 +14,8 @@ output_format = "mp3 -ab 16k -ar 12000"
 [popup]
 # Zentoo's terminal emulator for the push-to-talk popup.
 terminal = "foot"
+width = 45
+height = 8
 
 [process.actions.herdr]
 name = "Send to Herdr agent"
