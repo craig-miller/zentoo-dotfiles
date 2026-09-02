@@ -28,7 +28,7 @@ command = "herdr-nvim-nav.right"
 description = "navigate right (nvim/herdr)"
 
 [ui.toast]
-delivery = "system"
+delivery = "off"
 
 [ui]
 show_agent_labels_on_pane_borders = true
