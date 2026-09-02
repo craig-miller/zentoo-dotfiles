@@ -74,9 +74,6 @@ if [[ "$mode" == "ask" || "$mode" == ask-* ]]; then
 User said: $message"
 fi
 before_response_id=""
-if [[ "$mode" == "ask" || "$mode" == ask-* ]] && [[ -x "$response_text_bin" ]]; then
-	before_response_id="$({ "$response_text_bin" "$pane_id" --json | jq -r '.message_id // empty'; } 2>/dev/null || true)"
-fi
 if [[ -z "$pane_id" || -z "$message" ]]; then
 	notify "Voice routing failed."
 	echo "Invalid voice route: $route" >&2
@@ -91,6 +88,9 @@ if [[ "$start_fresh_context" == "true" ]]; then
 	herdr pane send-text "$pane_id" "/new" >/dev/null
 	herdr pane send-keys "$pane_id" enter >/dev/null
 	sleep 0.5
+fi
+if [[ "$mode" == "ask" || "$mode" == ask-* ]] && [[ -x "$response_text_bin" ]]; then
+	before_response_id="$({ "$response_text_bin" "$pane_id" --json | jq -r '.message_id // empty'; } 2>/dev/null || true)"
 fi
 herdr pane send-keys "$pane_id" esc i >/dev/null
 herdr pane send-text "$pane_id" "$message" >/dev/null
