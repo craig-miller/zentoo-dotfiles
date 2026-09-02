@@ -28,6 +28,6 @@ export OSTT_AUTO_STOP_MIN_MS="${OSTT_AUTO_STOP_MIN_MS:-900}"
 export OSTT_AUTO_STOP_RMS_THRESHOLD="${OSTT_AUTO_STOP_RMS_THRESHOLD:-0.02}"
 # Voice ask mode can legitimately wait for the agent response and spoken TTS.
 # Patched Zentoo OSTT honors this for bash processing actions.
-export OSTT_BASH_ACTION_TIMEOUT_SECS="${OSTT_BASH_ACTION_TIMEOUT_SECS:-180}"
+export OSTT_BASH_ACTION_TIMEOUT_SECS="${OSTT_BASH_ACTION_TIMEOUT_SECS:-600}"
 
 exec ostt launch -- -p herdr
