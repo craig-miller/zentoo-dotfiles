@@ -12,6 +12,9 @@ set -gx FZF_CTRL_T_COMMAND "$FZF_DEFAULT_COMMAND"
 set -gx BAT_THEME ansi
 set -gx MANPAGER "sh -c 'col -bx | bat -l man -p'"
 
+# linear-cli — avoid pager in interactive mode
+set -gx LINEAR_CLI_NO_PAGER true
+
 # gpg-agent — unified SSH+GPG agent (see ~/.gnupg/gpg-agent.conf)
 set -gx SSH_AUTH_SOCK (gpgconf --list-dirs agent-ssh-socket)
 
