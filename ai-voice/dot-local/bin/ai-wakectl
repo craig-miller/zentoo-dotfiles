@@ -9,10 +9,12 @@ stderr_log="/tmp/ai-wake.stderr"
 
 notify() {
   local message="$1"
-  if command -v notify-send >/dev/null 2>&1; then
-    notify-send "AI Wake" "$message" >/dev/null 2>&1 || true
+  if [[ "${AI_WAKECTL_QUIET:-false}" != "true" && "${AI_WAKECTL_QUIET:-0}" != "1" ]]; then
+    if command -v notify-send >/dev/null 2>&1; then
+      notify-send "AI Wake" "$message" >/dev/null 2>&1 || true
+    fi
+    printf '%s\n' "$message"
   fi
-  printf '%s\n' "$message"
 }
 
 running_pid() {

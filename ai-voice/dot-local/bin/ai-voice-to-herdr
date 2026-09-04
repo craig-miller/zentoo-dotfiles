@@ -8,7 +8,7 @@ wake_stopped_by_voice="false"
 
 restore_wake() {
 	if [[ "$wake_stopped_by_voice" == "true" && -x "$wakectl_bin" ]]; then
-		"$wakectl_bin" on >/dev/null 2>&1 || true
+		AI_WAKECTL_QUIET=1 "$wakectl_bin" on >/dev/null 2>&1 || true
 	fi
 }
 trap restore_wake EXIT
@@ -46,7 +46,7 @@ export OSTT_BASH_ACTION_TIMEOUT_SECS="${OSTT_BASH_ACTION_TIMEOUT_SECS:-600}"
 if [[ "${AI_VOICE_STOP_WAKE_DURING_OSTT:-true}" == "true" && -x "$wakectl_bin" ]]; then
 	if "$wakectl_bin" status >/dev/null 2>&1; then
 		wake_was_running="true"
-		"$wakectl_bin" off >/dev/null 2>&1 || true
+		AI_WAKECTL_QUIET=1 "$wakectl_bin" off >/dev/null 2>&1 || true
 		wake_stopped_by_voice="true"
 	fi
 fi
